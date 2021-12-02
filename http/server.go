@@ -16,6 +16,7 @@ import (
 	"github.com/drand/drand/client"
 	"github.com/drand/drand/log"
 	"github.com/drand/drand/metrics"
+	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	json "github.com/nikkolasg/hexjson"
@@ -40,19 +41,19 @@ type chains struct {
 
 func MetaHandler(ctx context.Context, l log.Logger, version string, chains []chains) (http.Handler, error) {
 
-	mux := http.NewServeMux()
+	r := mux.NewRouter()
 	for _, info := range chains {
-		h, err := New(ctx, info.client, version)
+		subrouter := r.PathPrefix("/" + info.chainHash).Subrouter()
+		_, err := New(ctx, info.client, version, l, subrouter)
 		if err != nil {
 			return nil, err
 		}
-		mux.Handle(fmt.Sprintf("/%s/", info.chainHash), h)
 	}
-	return mux, nil
+	return r, nil
 }
 
 // New creates an HTTP handler for the public Drand API
-func New(ctx context.Context, c client.Client, version string, logger log.Logger) (http.Handler, error) {
+func New(ctx context.Context, c client.Client, version string, logger log.Logger, mux *mux.Router) (http.Handler, error) {
 	if logger == nil {
 		logger = log.DefaultLogger()
 	}
