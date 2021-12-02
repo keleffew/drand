@@ -33,6 +33,24 @@ var (
 	reqTimeout = 5 * time.Second
 )
 
+type chains struct {
+	chainHash string
+	client    client.Client
+}
+
+func MetaHandler(ctx context.Context, l log.Logger, version string, chains []chains) (http.Handler, error) {
+
+	mux := http.NewServeMux()
+	for _, info := range chains {
+		h, err := New(ctx, info.client, version)
+		if err != nil {
+			return nil, err
+		}
+		mux.Handle(fmt.Sprintf("/%s/", info.chainHash), h)
+	}
+	return mux, nil
+}
+
 // New creates an HTTP handler for the public Drand API
 func New(ctx context.Context, c client.Client, version string, logger log.Logger) (http.Handler, error) {
 	if logger == nil {
@@ -49,7 +67,6 @@ func New(ctx context.Context, c client.Client, version string, logger log.Logger
 		version:     version,
 	}
 
-	mux := http.NewServeMux()
 	//TODO: aggregated bulk round responses.
 	mux.HandleFunc("/public/latest", withCommonHeaders(version, handler.LatestRand))
 	mux.HandleFunc("/public/", withCommonHeaders(version, handler.PublicRand))
