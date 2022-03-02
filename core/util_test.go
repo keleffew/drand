@@ -239,6 +239,20 @@ func (d *DrandTestScenario) Ids(n int, newGroup bool) []string {
 	return addresses
 }
 
+func (d *DrandTestScenario) waitRunning(client *net.ControlClient) {
+	isRunning := false
+	for !isRunning {
+		r, err := client.Status(d.beaconID)
+		require.NoError(d.t, err)
+		if r.Beacon.IsRunning {
+			d.t.Log("[DEBUG] Leader    Status: isRunning")
+			isRunning = true
+		} else {
+			time.Sleep(500 * time.Millisecond)
+		}
+	}
+}
+
 // RunDKG runs the DKG with the initial nodes created during NewDrandTest
 func (d *DrandTestScenario) RunDKG() *key.Group {
 	// common secret between participants
@@ -268,12 +282,11 @@ func (d *DrandTestScenario) RunDKG() *key.Group {
 		require.NoError(d.t, err)
 
 		d.t.Logf("[RunDKG] Leader    Finished. GroupHash %x", group.Hash())
+
+		// We need to make sure the daemon is running before continuing
+		d.waitRunning(controlClient)
 		wg.Done()
 	}()
-
-	// make sure the leader is up and running to start the setup
-	// TODO: replace this with a ping loop and refactor to make it reusable
-	time.Sleep(1 * time.Second)
 
 	// all other nodes will send their PK to the leader that will create the group
 	for _, node := range d.nodes[1:] {
@@ -285,13 +298,17 @@ func (d *DrandTestScenario) RunDKG() *key.Group {
 			group, err := key.GroupFromProto(groupPacket)
 			require.NoError(d.t, err)
 
-			d.t.Logf("[RunDKG] NonLeader Finished. GroupHash %x", group.Hash())
+			d.t.Logf("[RunDKG] NonLeader %s Finished. GroupHash %x", node.GetAddr(), group.Hash())
+
+			// We need to make sure the daemon is running before continuing
+			d.waitRunning(client)
 			wg.Done()
 		}(node)
 	}
 
 	// wait for all to return
 	wg.Wait()
+
 	d.t.Logf("[RunDKG] Leader %s FINISHED", leaderNode.addr)
 
 	// we check that we can fetch the group using control functionalities on the leaderNode node
@@ -665,7 +682,7 @@ func (d *DrandTestScenario) RunReshare(t *testing.T, c *reshareConfig) (*key.Gro
 	d.resharedNodes = append(d.resharedNodes, leader)
 
 	// leave some time to make sure leader is listening
-	// Note: Remove this. Ping until leader is ready. Use a ping + lambda + retry
+	// TODO: Remove this. Ping until leader is ready. Use a ping + lambda + retry
 	time.Sleep(1 * time.Second)
 
 	// run the current nodes
@@ -874,4 +891,8 @@ func (b *testBroadcast) BroadcastDKG(c context.Context, p *drand.DKGPacket) (*dr
 	}
 	defer b.Unlock()
 	return ret, nil
+}
+
+func (n *MockNode) GetAddr() string {
+	return n.addr
 }
