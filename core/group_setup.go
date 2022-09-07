@@ -171,6 +171,8 @@ type pushKey struct {
 func (s *setupManager) ReceivedKey(addr string, p *drand.SignalDKGPacket) error {
 	s.Lock()
 	defer s.Unlock()
+	s.l.Debugw("Processing incoming key", "from_node", p.GetNode())
+
 	if !correctSecret(s.hashedSecret, p.GetSecretProof()) {
 		return errors.New("shared secret is incorrect")
 	}
@@ -191,7 +193,7 @@ func (s *setupManager) ReceivedKey(addr string, p *drand.SignalDKGPacket) error 
 		return fmt.Errorf("invalid sig: %w", err)
 	}
 
-	s.l.Debugw("", "setup", "received_new_key", "id", newID.String())
+	s.l.Debugw("received_valid_new_key", "id", newID.String())
 
 	s.pushKeyCh <- pushKey{
 		addr: addr,
@@ -385,6 +387,7 @@ func (r *setupReceiver) PushDKGInfo(pg *drand.DKGInfoPacket) error {
 }
 
 func (r *setupReceiver) WaitDKGInfo(ctx context.Context) (*key.Group, uint32, error) {
+	r.l.Debugw("Waiting for dkgGroup message")
 	select {
 	case dkgGroup := <-r.ch:
 		if dkgGroup == nil {
