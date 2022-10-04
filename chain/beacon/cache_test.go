@@ -1,11 +1,11 @@
 package beacon
 
 import (
+	"github.com/drand/drand/crypto"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/drand/drand/chain"
 	"github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/key"
 	"github.com/drand/drand/log"
@@ -17,7 +17,7 @@ var fakeKey = key.NewKeyPair("127.0.0.1:8080")
 
 func generatePartial(idx int, round uint64, prev []byte) *drand.PartialBeaconPacket {
 	sch := scheme.GetSchemeFromEnv()
-	verifier := chain.NewVerifier(sch)
+	verifier := crypto.NewVerifier(sch)
 
 	sh := &share.PriShare{
 		I: idx,
@@ -39,7 +39,7 @@ func TestCacheRound(t *testing.T) {
 	prev := []byte("yesterday was another day")
 
 	sch := scheme.GetSchemeFromEnv()
-	verifier := chain.NewVerifier(sch)
+	verifier := crypto.NewVerifier(sch)
 
 	msg := verifier.DigestMessage(round, prev)
 	partial := generatePartial(1, round, prev)

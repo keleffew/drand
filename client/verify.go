@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"github.com/drand/drand/crypto"
 	"sync"
 
 	"github.com/drand/drand/chain"
@@ -19,7 +20,7 @@ type Opts struct {
 
 // newVerifyingClient wraps a client to perform `chain.Verify` on emitted results.
 func newVerifyingClient(c Client, previousResult Result, opts Opts) Client {
-	verifier := chain.NewVerifier(opts.scheme)
+	verifier := crypto.NewVerifier(opts.scheme)
 
 	return &verifyingClient{
 		Client:         c,
@@ -42,7 +43,7 @@ type verifyingClient struct {
 	potLk        sync.Mutex
 	opts         Opts
 
-	verifier *chain.Verifier
+	verifier *crypto.Verifier
 	log      log.Logger
 }
 

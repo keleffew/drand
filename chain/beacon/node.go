@@ -2,9 +2,11 @@ package beacon
 
 import (
 	"context"
+	"crypto"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	crypto2 "github.com/drand/drand/crypto"
 	"strings"
 	"sync"
 	"time"
@@ -43,11 +45,11 @@ type Handler struct {
 	// to communicate with other drand peers
 	client net.ProtocolClient
 	// keeps the cryptographic info (group share etc)
-	crypto *cryptoStore
+	crypto *crypto.Vault
 	// main logic that treats incoming packet / new beacons created
 	chain    *chainStore
 	ticker   *ticker
-	verifier *chain.Verifier
+	verifier *crypto2.Verifier
 
 	close   chan bool
 	addr    string
@@ -71,15 +73,15 @@ func NewHandler(c net.ProtocolClient, s chain.Store, conf *Config, l log.Logger,
 		return nil, errors.New("beacon: keypair not included in the given group")
 	}
 	addr := conf.Public.Address()
-	crypto := newCryptoStore(conf.Group, conf.Share)
+	vault := crypto.NewVault(conf.Group, conf.Share)
 	// insert genesis beacon
-	if err := s.Put(chain.GenesisBeacon(crypto.chain)); err != nil {
+	if err := s.Put(chain.GenesisBeacon(conf.Group.GenesisSeed)); err != nil {
 		return nil, err
 	}
 
 	ticker := newTicker(conf.Clock, conf.Group.Period, conf.Group.GenesisTime)
 	store := newChainStore(l, conf, c, crypto, s, ticker)
-	verifier := chain.NewVerifier(conf.Group.Scheme)
+	verifier := crypto2.NewVerifier(conf.Group.Scheme)
 
 	handler := &Handler{
 		conf:     conf,

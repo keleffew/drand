@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"github.com/drand/drand/crypto"
 	"testing"
 
 	"github.com/drand/drand/common/scheme"
@@ -13,7 +14,7 @@ func BenchmarkVerifyBeacon(b *testing.B) {
 	public := key.KeyGroup.Point().Mul(secret, nil)
 
 	sch := scheme.GetSchemeFromEnv()
-	verifier := NewVerifier(sch)
+	verifier := crypto.NewVerifier(sch)
 
 	var round uint64 = 16
 	prevSig := []byte("My Sweet Previous Signature")

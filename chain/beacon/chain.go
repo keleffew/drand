@@ -3,6 +3,7 @@ package beacon
 import (
 	"context"
 	"fmt"
+	crypto2 "github.com/drand/drand/crypto"
 
 	"github.com/drand/drand/chain"
 	"github.com/drand/drand/key"
@@ -25,8 +26,8 @@ type chainStore struct {
 	conf        *Config
 	client      net.ProtocolClient
 	syncm       *SyncManager
-	verifier    *chain.Verifier
-	crypto      *cryptoStore
+	verifier    *crypto2.Verifier
+	crypto      *crypto2.cryptoStore
 	ticker      *ticker
 	done        chan bool
 	newPartials chan partialInfo
@@ -38,7 +39,7 @@ type chainStore struct {
 	beaconStoredAgg chan *chain.Beacon
 }
 
-func newChainStore(l log.Logger, cf *Config, cl net.ProtocolClient, c *cryptoStore, store chain.Store, t *ticker) *chainStore {
+func newChainStore(l log.Logger, cf *Config, cl net.ProtocolClient, c *crypto2.cryptoStore, store chain.Store, t *ticker) *chainStore {
 	// we make sure the chain is increasing monotonically
 	as := newAppendStore(store)
 
@@ -63,7 +64,7 @@ func newChainStore(l log.Logger, cf *Config, cl net.ProtocolClient, c *cryptoSto
 	})
 	go syncm.Run()
 
-	verifier := chain.NewVerifier(cf.Group.Scheme)
+	verifier := crypto2.NewVerifier(cf.Group.Scheme)
 
 	cs := &chainStore{
 		CallbackStore:   cbs,

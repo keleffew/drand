@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/drand/drand/crypto"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -32,7 +33,7 @@ type SyncManager struct {
 	info          *chain.Info
 	client        net.ProtocolClient
 	// verifies the incoming beacon according to chain scheme
-	verifier *chain.Verifier
+	verifier *crypto.Verifier
 	// period of the randomness generation
 	period time.Duration
 	// sync manager will renew sync if nothing happens for factor*period time

@@ -1,7 +1,8 @@
-package chain
+package crypto
 
 import (
 	"crypto/sha256"
+	"github.com/drand/drand/chain"
 
 	"github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/key"
@@ -26,7 +27,7 @@ func (v Verifier) DigestMessage(currRound uint64, prevSig []byte) []byte {
 	if !v.scheme.DecouplePrevSig {
 		_, _ = h.Write(prevSig)
 	}
-	_, _ = h.Write(RoundToBytes(currRound))
+	_, _ = h.Write(chain.RoundToBytes(currRound))
 	return h.Sum(nil)
 }
 
@@ -34,7 +35,7 @@ func (v Verifier) DigestMessage(currRound uint64, prevSig []byte) []byte {
 // public key. The public key "point" can be obtained from the
 // `key.DistPublic.Key()` method. The distributed public is the one written in
 // the configuration file of the network.
-func (v Verifier) VerifyBeacon(b Beacon, pubkey kyber.Point) error {
+func (v Verifier) VerifyBeacon(b chain.Beacon, pubkey kyber.Point) error {
 	prevSig := b.PreviousSig
 	round := b.Round
 

@@ -14,7 +14,7 @@ import (
 	"github.com/drand/kyber/util/random"
 )
 
-// Pair is a wrapper around a random scalar  and the corresponding public
+// Pair is a wrapper around a random scalar and the corresponding public
 // key
 type Pair struct {
 	Key    kyber.Scalar

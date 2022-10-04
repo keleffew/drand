@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"github.com/drand/drand/crypto"
 	"time"
 
 	"github.com/drand/drand/common"
@@ -77,6 +78,6 @@ func (c *Info) Equal(c2 *Info) bool {
 
 // Verifier returns the verifier used to verify the beacon produced by this
 // chain
-func (c *Info) Verifier() *Verifier {
-	return NewVerifier(c.Scheme)
+func (c *Info) Verifier() *crypto.Verifier {
+	return crypto.NewVerifier(c.Scheme)
 }

@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"context"
+	"github.com/drand/drand/crypto"
 	"time"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -62,7 +63,7 @@ func randomnessValidator(info *chain.Info, cache client.Cache, c *Client) pubsub
 			}
 		}
 
-		verifier := chain.NewVerifier(info.Scheme)
+		verifier := crypto.NewVerifier(info.Scheme)
 
 		err = verifier.VerifyBeacon(b, info.PublicKey)
 

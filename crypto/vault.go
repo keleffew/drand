@@ -1,4 +1,4 @@
-package beacon
+package crypto
 
 import (
 	"sync"
@@ -14,11 +14,12 @@ type CryptoSafe interface {
 	SignPartial(msg []byte) ([]byte, error)
 }
 
-// cryptoStore stores the information necessary to validate partial beacon, full
+// Vault stores the information necessary to validate partial beacon, full
 // beacons and to sign new partial beacons (it implements CryptoSafe interface).
-// cryptoStore is thread safe when using the methods.
-type cryptoStore struct {
+// Vault is thread safe when using the methods.
+type Vault struct {
 	sync.Mutex
+	Scheme
 	// current share of the node
 	share *key.Share
 	// public polynomial to verify a partial beacon
@@ -29,8 +30,8 @@ type cryptoStore struct {
 	group *key.Group
 }
 
-func newCryptoStore(currentGroup *key.Group, ks *key.Share) *cryptoStore {
-	return &cryptoStore{
+func NewVault(currentGroup *key.Group, ks *key.Share) *Vault {
+	return &Vault{
 		chain: chain.NewChainInfo(currentGroup),
 		share: ks,
 		pub:   currentGroup.PublicKey.PubPoly(),
@@ -39,31 +40,31 @@ func newCryptoStore(currentGroup *key.Group, ks *key.Share) *cryptoStore {
 }
 
 // GetGroup returns the current group
-func (c *cryptoStore) GetGroup() *key.Group {
+func (c *Vault) GetGroup() *key.Group {
 	c.Lock()
 	defer c.Unlock()
 	return c.group
 }
 
-func (c *cryptoStore) GetPub() *share.PubPoly {
+func (c *Vault) GetPub() *share.PubPoly {
 	c.Lock()
 	defer c.Unlock()
 	return c.pub
 }
 
 // SignPartial implemements the CryptoSafe interface
-func (c *cryptoStore) SignPartial(msg []byte) ([]byte, error) {
+func (c *Vault) SignPartial(msg []byte) ([]byte, error) {
 	c.Lock()
 	defer c.Unlock()
-	return key.Scheme.Sign(c.share.PrivateShare(), msg)
+	return Scheme.TSign(c.share.PrivateShare(), msg)
 }
 
 // Index returns the index of the share
-func (c *cryptoStore) Index() int {
+func (c *Vault) Index() int {
 	return c.share.Share.I
 }
 
-func (c *cryptoStore) SetInfo(newGroup *key.Group, ks *key.Share) {
+func (c *Vault) SetInfo(newGroup *key.Group, ks *key.Share) {
 	c.Lock()
 	defer c.Unlock()
 	c.share = ks

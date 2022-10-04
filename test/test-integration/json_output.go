@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/drand/drand/crypto"
 
-	"github.com/drand/drand/chain"
 	dscheme "github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/key"
 	"github.com/drand/kyber/sign/bls"
@@ -27,7 +27,7 @@ func main() {
 	}
 
 	sch := dscheme.GetSchemeFromEnv()
-	verifier := chain.NewVerifier(sch)
+	verifier := crypto.NewVerifier(sch)
 
 	msg := verifier.DigestMessage(uint64(round), previousSig)
 	signature, err := scheme.Sign(private, msg)

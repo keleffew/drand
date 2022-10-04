@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/drand/drand/crypto"
 	"os"
 	"path"
 	"sync"
@@ -404,7 +405,7 @@ func TestBeaconSync(t *testing.T) {
 	bt := NewBeaconTest(t, n, thr, period, genesisTime, sch, beaconID)
 	defer bt.CleanUp()
 
-	verifier := chain.NewVerifier(sch)
+	verifier := crypto.NewVerifier(sch)
 
 	var counter = &sync.WaitGroup{}
 	myCallBack := func(i int) func(*chain.Beacon) {
@@ -483,7 +484,7 @@ func TestBeaconSimple(t *testing.T) {
 	bt := NewBeaconTest(t, n, thr, period, genesisTime, sch, beaconID)
 	defer bt.CleanUp()
 
-	verifier := chain.NewVerifier(sch)
+	verifier := crypto.NewVerifier(sch)
 
 	var counter = &sync.WaitGroup{}
 	counter.Add(n)
@@ -544,7 +545,7 @@ func TestBeaconThreshold(t *testing.T) {
 	bt := NewBeaconTest(t, n, thr, period, genesisTime, sch, beaconID)
 	defer func() { go bt.CleanUp() }()
 
-	verifier := chain.NewVerifier(sch)
+	verifier := crypto.NewVerifier(sch)
 
 	currentRound := uint64(0)
 	var counter = &sync.WaitGroup{}
