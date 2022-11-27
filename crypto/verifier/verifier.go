@@ -1,22 +1,21 @@
-package crypto
+package verifier
 
 import (
 	"crypto/sha256"
-	"github.com/drand/drand/chain"
 
-	"github.com/drand/drand/common/scheme"
-	"github.com/drand/drand/key"
+	"github.com/drand/drand/chain"
+	"github.com/drand/drand/crypto"
 	"github.com/drand/kyber"
 )
 
 // Verifier allows verifying the beacons signature based on a scheme.
 type Verifier struct {
 	// scheme holds a set of values the verifying process will use to act in specific ways, regarding signature verification, etc
-	scheme scheme.Scheme
+	crypto.Scheme
 }
 
-func NewVerifier(sch scheme.Scheme) *Verifier {
-	return &Verifier{scheme: sch}
+func NewVerifier(sch crypto.Scheme) *Verifier {
+	return &Verifier{Scheme: sch}
 }
 
 // DigestMessage returns a slice of bytes as the message to sign or to verify
@@ -24,7 +23,7 @@ func NewVerifier(sch scheme.Scheme) *Verifier {
 func (v Verifier) DigestMessage(currRound uint64, prevSig []byte) []byte {
 	h := sha256.New()
 
-	if !v.scheme.DecouplePrevSig {
+	if v.IsPreviousSigSignificant {
 		_, _ = h.Write(prevSig)
 	}
 	_, _ = h.Write(chain.RoundToBytes(currRound))
@@ -41,9 +40,10 @@ func (v Verifier) VerifyBeacon(b chain.Beacon, pubkey kyber.Point) error {
 
 	msg := v.DigestMessage(round, prevSig)
 
-	return key.Scheme.VerifyRecovered(pubkey, msg, b.Signature)
+	return v.Scheme.ThresholdScheme.VerifyRecovered(pubkey, msg, b.Signature)
 }
 
+// IsPrevSigMeaningful returns whether the verifier needs a previous signature or not to verify the current one
 func (v Verifier) IsPrevSigMeaningful() bool {
-	return !v.scheme.DecouplePrevSig
+	return v.IsPreviousSigSignificant
 }

@@ -16,7 +16,6 @@ import (
 
 	"github.com/drand/drand/chain"
 	"github.com/drand/drand/common"
-	"github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/demo/node"
 	"github.com/drand/drand/key"
 	"github.com/drand/drand/protobuf/drand"
@@ -38,7 +37,7 @@ type Orchestrator struct {
 	newThr            int
 	beaconID          string
 	period            string
-	scheme            scheme.Scheme
+	scheme            crypto.Scheme
 	periodD           time.Duration
 	basePath          string
 	groupPath         string
@@ -62,7 +61,7 @@ type Orchestrator struct {
 	binary            string
 }
 
-func NewOrchestrator(n int, thr int, period string, tls bool, binary string, withCurl bool, sch scheme.Scheme, beaconID string, isCandidate bool) *Orchestrator {
+func NewOrchestrator(n int, thr int, period string, tls bool, binary string, withCurl bool, sch crypto.Scheme, beaconID string, isCandidate bool) *Orchestrator {
 	basePath := path.Join(os.TempDir(), "drand-full")
 	os.RemoveAll(basePath)
 
@@ -502,7 +501,7 @@ func (e *Orchestrator) RunResharing(timeout string) {
 	}
 }
 
-func createNodes(n int, offset int, period, basePath, certFolder string, tls bool, binary string, sch scheme.Scheme, beaconID string, isCandidate bool) ([]node.Node, []string) {
+func createNodes(n int, offset int, period, basePath, certFolder string, tls bool, binary string, sch crypto.Scheme, beaconID string, isCandidate bool) ([]node.Node, []string) {
 	var nodes []node.Node
 	for i := 0; i < n; i++ {
 		idx := i + offset

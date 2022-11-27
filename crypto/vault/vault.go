@@ -1,7 +1,9 @@
-package crypto
+package vault
 
 import (
 	"sync"
+
+	"github.com/drand/drand/crypto"
 
 	"github.com/drand/drand/chain"
 	"github.com/drand/drand/key"
@@ -19,7 +21,7 @@ type CryptoSafe interface {
 // Vault is thread safe when using the methods.
 type Vault struct {
 	sync.Mutex
-	Scheme
+	crypto.Scheme
 	// current share of the node
 	share *key.Share
 	// public polynomial to verify a partial beacon
@@ -52,11 +54,17 @@ func (c *Vault) GetPub() *share.PubPoly {
 	return c.pub
 }
 
+func (c *Vault) GetInfo() *chain.Info {
+	c.Lock()
+	defer c.Unlock()
+	return c.chain
+}
+
 // SignPartial implemements the CryptoSafe interface
 func (c *Vault) SignPartial(msg []byte) ([]byte, error) {
 	c.Lock()
 	defer c.Unlock()
-	return Scheme.TSign(c.share.PrivateShare(), msg)
+	return c.Scheme.ThresholdScheme.Sign(c.share.PrivateShare(), msg)
 }
 
 // Index returns the index of the share

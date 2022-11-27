@@ -191,7 +191,7 @@ func (bp *BeaconProcess) WaitDKG() (*key.Group, error) {
 		}
 	}
 
-	s := key.Share(*res.Result.Key)
+	s := key.Share{DistKeyShare: *res.Result.Key, Scheme: bp.priv.Scheme()}
 	bp.share = &s
 	if err := bp.store.SaveShare(bp.share); err != nil {
 		return nil, err

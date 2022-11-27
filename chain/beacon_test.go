@@ -19,7 +19,7 @@ func BenchmarkVerifyBeacon(b *testing.B) {
 	var round uint64 = 16
 	prevSig := []byte("My Sweet Previous Signature")
 
-	msg := verifier.DigestMessage(round, prevSig)
+	msg := verifier.DigestMessage(chain.RoundToBytes(1) prevSig)
 
 	sig, _ := key.AuthScheme.Sign(secret, msg)
 	b.ResetTimer()

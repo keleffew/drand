@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/drand/drand/crypto"
+	"github.com/drand/drand/crypto/verifier"
 	"sync"
 
 	"github.com/drand/drand/chain"
-	"github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/log"
 )
 
@@ -15,12 +15,12 @@ type Opts struct {
 	strict bool
 
 	// scheme holds a set of values the verifying process will use to act in specific ways, regarding signature verification, etc
-	scheme scheme.Scheme
+	scheme crypto.Scheme
 }
 
 // newVerifyingClient wraps a client to perform `chain.Verify` on emitted results.
 func newVerifyingClient(c Client, previousResult Result, opts Opts) Client {
-	verifier := crypto.NewVerifier(opts.scheme)
+	verifier := verifier.NewVerifier(opts.scheme)
 
 	return &verifyingClient{
 		Client:         c,
@@ -43,7 +43,7 @@ type verifyingClient struct {
 	potLk        sync.Mutex
 	opts         Opts
 
-	verifier *crypto.Verifier
+	verifier *verifier.Verifier
 	log      log.Logger
 }
 

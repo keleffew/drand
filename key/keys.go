@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/drand/drand/common/scheme"
+	"github.com/drand/drand/crypto"
 	"net"
 
 	proto "github.com/drand/drand/protobuf/drand"
@@ -29,6 +31,7 @@ type Identity struct {
 	Addr      string
 	TLS       bool
 	Signature []byte
+	Scheme    crypto.Scheme
 }
 
 // Address implements the net.Peer interface
@@ -46,10 +49,10 @@ func (i *Identity) String() string {
 }
 
 // Hash returns the hash of the public key without signing the signature. The hash
-// is the input to the signature scheme. It does _not_ hash the address & tls
+// is the input to the signature Scheme. It does _not_ hash the address & tls
 // field as those may need to change while the node keeps the same key.
 func (i *Identity) Hash() []byte {
-	h := hashFunc()
+	h := i.Scheme.HashFunc()
 	_, _ = i.Key.MarshalTo(h)
 	return h.Sum(nil)
 }
@@ -58,7 +61,7 @@ func (i *Identity) Hash() []byte {
 // correct or not
 func (i *Identity) ValidSignature() error {
 	msg := i.Hash()
-	return AuthScheme.Verify(i.Key, msg, i.Signature)
+	return i.Scheme.AuthScheme.Verify(i.Key, msg, i.Signature)
 }
 
 // Equal indicates if two identities are equal
@@ -76,20 +79,28 @@ func (i *Identity) Equal(i2 *Identity) bool {
 }
 
 // SelfSign signs the public key with the key pair
-func (p *Pair) SelfSign() {
+func (p *Pair) SelfSign() error {
 	msg := p.Public.Hash()
-	signature, _ := AuthScheme.Sign(p.Key, msg)
+	signature, err := p.Public.Scheme.AuthScheme.Sign(p.Key, msg)
+	if err != nil {
+		return err
+	}
 	p.Public.Signature = signature
+	return nil
 }
 
 // NewKeyPair returns a freshly created private / public key pair. The group is
 // decided by the group variable by default.
 func NewKeyPair(address string) *Pair {
-	key := KeyGroup.Scalar().Pick(random.New())
-	pubKey := KeyGroup.Point().Mul(key, nil)
+	scheme := scheme.GetSchemeFromEnv()
+
+	key := scheme.KeyGroup.Scalar().Pick(random.New())
+	pubKey := scheme.KeyGroup.Point().Mul(key, nil)
+
 	pub := &Identity{
-		Key:  pubKey,
-		Addr: address,
+		Key:    pubKey,
+		Addr:   address,
+		Scheme: scheme,
 	}
 	p := &Pair{
 		Key:    key,
@@ -110,21 +121,28 @@ func NewTLSKeyPair(address string) *Pair {
 
 // PairTOML is the TOML-able version of a private key
 type PairTOML struct {
-	Key string
+	Key        string
+	SchemeName string
 }
 
 // PublicTOML is the TOML-able version of a public key
 type PublicTOML struct {
-	Address   string
-	Key       string
-	TLS       bool
-	Signature string
+	Address    string
+	Key        string
+	TLS        bool
+	Signature  string
+	SchemeName string
 }
 
 // TOML returns a struct that can be marshaled using a TOML-encoding library
 func (p *Pair) TOML() interface{} {
 	hexKey := ScalarToString(p.Key)
-	return &PairTOML{hexKey}
+	return &PairTOML{hexKey, p.Public.Scheme.Name}
+}
+
+// Scheme returns the key's crypto Scheme
+func (p *Pair) Scheme() crypto.Scheme {
+	return p.Public.Scheme
 }
 
 // FromTOML constructs the private key from an unmarshalled structure from TOML
@@ -133,10 +151,15 @@ func (p *Pair) FromTOML(i interface{}) error {
 	if !ok {
 		return errors.New("private can't decode toml from non PairTOML struct")
 	}
-
+	scheme := crypto.SchemeFromName(ptoml.SchemeName)
+	if scheme == nil {
+		return fmt.Errorf("invalid Scheme name")
+	}
 	var err error
-	p.Key, err = StringToScalar(KeyGroup, ptoml.Key)
+	p.Key, err = StringToScalar(scheme.KeyGroup, ptoml.Key)
 	p.Public = new(Identity)
+	p.Public.Scheme = *scheme
+
 	return err
 }
 
@@ -152,7 +175,12 @@ func (i *Identity) FromTOML(t interface{}) error {
 		return errors.New("public can't decode from non PublicTOML struct")
 	}
 	var err error
-	i.Key, err = StringToPoint(KeyGroup, ptoml.Key)
+	scheme := crypto.SchemeFromName(ptoml.SchemeName)
+	if scheme == nil {
+		return fmt.Errorf("invalid Scheme name")
+	}
+	i.Scheme = *scheme
+	i.Key, err = StringToPoint(scheme.KeyGroup, ptoml.Key)
 	if err != nil {
 		return fmt.Errorf("decoding public key: %w", err)
 	}
@@ -168,10 +196,11 @@ func (i *Identity) FromTOML(t interface{}) error {
 func (i *Identity) TOML() interface{} {
 	hexKey := PointToString(i.Key)
 	return &PublicTOML{
-		Address:   i.Addr,
-		Key:       hexKey,
-		TLS:       i.TLS,
-		Signature: hex.EncodeToString(i.Signature),
+		Address:    i.Addr,
+		Key:        hexKey,
+		TLS:        i.TLS,
+		Signature:  hex.EncodeToString(i.Signature),
+		SchemeName: i.Scheme.Name,
 	}
 }
 
@@ -204,7 +233,11 @@ func IdentityFromProto(n *proto.Identity) (*Identity, error) {
 	if err != nil {
 		return nil, err
 	}
-	public := KeyGroup.Point()
+	scheme := crypto.SchemeFromName(n.GetScheme())
+	if scheme == nil {
+		return nil, fmt.Errorf("invalid Scheme name")
+	}
+	public := scheme.KeyGroup.Point()
 	if err := public.UnmarshalBinary(n.GetKey()); err != nil {
 		return nil, err
 	}
@@ -214,6 +247,7 @@ func IdentityFromProto(n *proto.Identity) (*Identity, error) {
 		TLS:       n.Tls,
 		Key:       public,
 		Signature: n.GetSignature(),
+		Scheme:    *scheme,
 	}
 	return id, nil
 }
@@ -226,17 +260,21 @@ func (i *Identity) ToProto() *proto.Identity {
 		Key:       buff,
 		Tls:       i.TLS,
 		Signature: i.Signature,
+		Scheme:    i.Scheme.Name,
 	}
 }
 
 // Share represents the private information that a node holds after a successful
 // DKG. This information MUST stay private !
-type Share dkg.DistKeyShare
+type Share struct {
+	dkg.DistKeyShare
+	Scheme crypto.Scheme
+}
 
 // PubPoly returns the public polynomial that can be used to verify any
 // individual patial signature
 func (s *Share) PubPoly() *share.PubPoly {
-	return share.NewPubPoly(KeyGroup, KeyGroup.Point().Base(), s.Commits)
+	return share.NewPubPoly(s.Scheme.KeyGroup, s.Scheme.KeyGroup.Point().Base(), s.Commits)
 }
 
 // PrivateShare returns the private share used to produce a partial signature
@@ -247,7 +285,7 @@ func (s *Share) PrivateShare() *share.PriShare {
 // Public returns the distributed public key associated with the distributed key
 // share
 func (s *Share) Public() *DistPublic {
-	return &DistPublic{s.Commits}
+	return &DistPublic{s.Commits, s.Scheme}
 }
 
 // TOML returns a TOML-compatible version of this share
@@ -270,14 +308,14 @@ func (s *Share) FromTOML(i interface{}) error {
 	}
 	s.Commits = make([]kyber.Point, len(t.Commits))
 	for i, c := range t.Commits {
-		p, err := StringToPoint(KeyGroup, c)
+		p, err := StringToPoint(s.Scheme.KeyGroup, c)
 		if err != nil {
 			return fmt.Errorf("share.Commit[%d] corruputed: %w", i, err)
 		}
 		s.Commits[i] = p
 	}
 
-	sshare, err := StringToScalar(KeyGroup, t.Share)
+	sshare, err := StringToScalar(s.Scheme.KeyGroup, t.Share)
 	if err != nil {
 		return fmt.Errorf("share.Share corrupted: %w", err)
 	}
@@ -309,11 +347,12 @@ type ShareTOML struct {
 // private distributed polynomial.
 type DistPublic struct {
 	Coefficients []kyber.Point
+	scheme       crypto.Scheme
 }
 
 // PubPoly provides the public polynomial commitment
 func (d *DistPublic) PubPoly() *share.PubPoly {
-	return share.NewPubPoly(KeyGroup, KeyGroup.Point().Base(), d.Coefficients)
+	return share.NewPubPoly(d.scheme.KeyGroup, d.scheme.KeyGroup.Point().Base(), d.Coefficients)
 }
 
 // Key returns the first coefficient as representing the public key to be used
@@ -355,7 +394,7 @@ func (d *DistPublic) FromTOML(i interface{}) error {
 	points := make([]kyber.Point, len(dtoml.Coefficients))
 	var err error
 	for i, s := range dtoml.Coefficients {
-		points[i], err = StringToPoint(KeyGroup, s)
+		points[i], err = StringToPoint(d.scheme.KeyGroup, s)
 		if err != nil {
 			return err
 		}

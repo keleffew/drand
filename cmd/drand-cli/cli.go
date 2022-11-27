@@ -682,7 +682,7 @@ func testWindows(c *cli.Context) error {
 	return nil
 }
 
-func keygenCmd(c *cli.Context) error {
+func keygenCmd(c *cli.Context) (err error) {
 	args := c.Args()
 	if !args.Present() {
 		return errors.New("missing drand address in argument. Abort")
@@ -699,6 +699,9 @@ func keygenCmd(c *cli.Context) error {
 	if c.Bool(insecureFlag.Name) {
 		fmt.Println("Generating private / public key pair without TLS.")
 		priv = key.NewKeyPair(addr)
+		if err != nil {
+			return err
+		}
 	} else {
 		fmt.Println("Generating private / public key pair with TLS indication")
 		priv = key.NewTLSKeyPair(addr)

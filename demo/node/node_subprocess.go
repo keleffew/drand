@@ -17,7 +17,6 @@ import (
 	"github.com/kabukky/httpscerts"
 	json "github.com/nikkolasg/hexjson"
 
-	"github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/core"
 	"github.com/drand/drand/key"
 	"github.com/drand/drand/protobuf/drand"
@@ -49,11 +48,11 @@ type NodeProc struct {
 	tls         bool
 	groupPath   string
 	binary      string
-	scheme      scheme.Scheme
+	scheme      crypto.Scheme
 	beaconID    string
 }
 
-func NewNode(i int, period string, base string, tls bool, binary string, sch scheme.Scheme, beaconID string, isCandidate bool) Node {
+func NewNode(i int, period string, base string, tls bool, binary string, sch crypto.Scheme, beaconID string, isCandidate bool) Node {
 	nbase := path.Join(base, fmt.Sprintf("node-%d", i))
 	os.MkdirAll(nbase, 0740)
 	logPath := path.Join(nbase, "log")

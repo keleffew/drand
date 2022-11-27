@@ -365,7 +365,7 @@ func (bp *BeaconProcess) runDKG(leader bool, group *key.Group, timeout uint32, r
 
 	reader, user := extractEntropy(randomness)
 	config := &dkg.Config{
-		Suite:          key.KeyGroup.(dkg.Suite),
+		Suite:          bp.priv.Scheme().KeyGroup.(dkg.Suite),
 		NewNodes:       group.DKGNodes(),
 		Longterm:       bp.priv.Key,
 		Reader:         reader,
@@ -373,7 +373,7 @@ func (bp *BeaconProcess) runDKG(leader bool, group *key.Group, timeout uint32, r
 		FastSync:       true,
 		Threshold:      group.Threshold,
 		Nonce:          getNonce(group),
-		Auth:           key.DKGAuthScheme,
+		Auth:           bp.priv.Scheme().DKGAuthScheme,
 		Log:            bp.log,
 	}
 	phaser := bp.getPhaser(timeout)
@@ -459,7 +459,7 @@ func (bp *BeaconProcess) runResharing(leader bool, oldGroup, newGroup *key.Group
 	newNode := newGroup.Find(bp.priv.Public)
 	newPresent := newNode != nil
 	config := &dkg.Config{
-		Suite:        key.KeyGroup.(dkg.Suite),
+		Suite:        bp.priv.Scheme().KeyGroup.(dkg.Suite),
 		NewNodes:     newGroup.DKGNodes(),
 		OldNodes:     oldGroup.DKGNodes(),
 		Longterm:     bp.priv.Key,
@@ -467,7 +467,7 @@ func (bp *BeaconProcess) runResharing(leader bool, oldGroup, newGroup *key.Group
 		OldThreshold: oldGroup.Threshold,
 		FastSync:     true,
 		Nonce:        getNonce(newGroup),
-		Auth:         key.DKGAuthScheme,
+		Auth:         bp.priv.Scheme().DKGAuthScheme,
 		Log:          bp.log,
 	}
 	err := func() error {

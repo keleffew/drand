@@ -2,8 +2,9 @@ package crypto
 
 import (
 	"encoding/hex"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestBLS12381Compatv112(t *testing.T) {

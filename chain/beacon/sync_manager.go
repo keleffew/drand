@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/drand/drand/crypto"
+	"github.com/drand/drand/crypto/verifier"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -33,7 +34,7 @@ type SyncManager struct {
 	info          *chain.Info
 	client        net.ProtocolClient
 	// verifies the incoming beacon according to chain scheme
-	verifier *crypto.Verifier
+	verifier *verifier.Verifier
 	// period of the randomness generation
 	period time.Duration
 	// sync manager will renew sync if nothing happens for factor*period time
@@ -74,6 +75,11 @@ type SyncConfig struct {
 // NewSyncManager returns a sync manager that will use the given store to store
 // newly synced beacon.
 func NewSyncManager(c *SyncConfig) *SyncManager {
+	sch := crypto.SchemeFromName(c.Info.GetSchemeName())
+	if sch == nil {
+		panic("invalid scheme name provided to sync manager")
+	}
+
 	return &SyncManager{
 		log:           c.Log.Named("SyncManager"),
 		clock:         c.Clock,
@@ -82,7 +88,7 @@ func NewSyncManager(c *SyncConfig) *SyncManager {
 		info:          c.Info,
 		client:        c.Client,
 		period:        c.Info.Period,
-		verifier:      c.Info.Verifier(),
+		verifier:      verifier.NewVerifier(*sch),
 		nodeAddr:      c.NodeAddr,
 		factor:        syncExpiryFactor,
 		newReq:        make(chan requestInfo, syncQueueRequest),

@@ -5,11 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	"github.com/drand/drand/crypto"
 	"time"
 
 	"github.com/drand/drand/common"
-	"github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/key"
 	"github.com/drand/drand/log"
 	"github.com/drand/kyber"
@@ -21,7 +19,7 @@ type Info struct {
 	PublicKey   kyber.Point   `json:"public_key"`
 	ID          string        `json:"id"`
 	Period      time.Duration `json:"period"`
-	Scheme      scheme.Scheme `json:"scheme"`
+	Scheme      string        `json:"scheme"`
 	GenesisTime int64         `json:"genesis_time"`
 	GenesisSeed []byte        `json:"group_hash"`
 }
@@ -31,7 +29,7 @@ func NewChainInfo(g *key.Group) *Info {
 	return &Info{
 		ID:          g.ID,
 		Period:      g.Period,
-		Scheme:      g.Scheme,
+		Scheme:      g.Scheme.Name,
 		PublicKey:   g.PublicKey.Key(),
 		GenesisTime: g.GenesisTime,
 		GenesisSeed: g.GetGenesisSeed(),
@@ -76,8 +74,7 @@ func (c *Info) Equal(c2 *Info) bool {
 		common.CompareBeaconIDs(c.ID, c2.ID)
 }
 
-// Verifier returns the verifier used to verify the beacon produced by this
-// chain
-func (c *Info) Verifier() *crypto.Verifier {
-	return crypto.NewVerifier(c.Scheme)
+// GetSchemeName returns the scheme name used
+func (c *Info) GetSchemeName() string {
+	return c.Scheme
 }

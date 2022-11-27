@@ -71,6 +71,7 @@ message Identity {
     bool tls = 3;
     // BLS signature over the identity to prove possession of the private key
     bytes signature = 4;
+    string scheme = 5;
 }
 
 // Node holds the information related to a server in a group that forms a drand

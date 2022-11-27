@@ -82,7 +82,7 @@ func roundToBytes(r int) []byte {
 }
 
 // VerifiableResults creates a set of results that will pass a `chain.Verify` check.
-func VerifiableResults(count int, sch scheme.Scheme) (*chain.Info, []Result) {
+func VerifiableResults(count int, sch crypto.Scheme) (*chain.Info, []Result) {
 	secret := key.KeyGroup.Scalar().Pick(random.New())
 	public := key.KeyGroup.Point().Mul(secret, nil)
 	previous := make([]byte, 32)
@@ -101,7 +101,7 @@ func VerifiableResults(count int, sch scheme.Scheme) (*chain.Info, []Result) {
 		}
 
 		sshare := share.PriShare{I: 0, V: secret}
-		tsig, err := key.Scheme.Sign(&sshare, msg)
+		tsig, err := scheme.ThresholdScheme.Sign(&sshare, msg)
 		if err != nil {
 			panic(err)
 		}

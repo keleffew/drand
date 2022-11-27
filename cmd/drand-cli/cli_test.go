@@ -834,7 +834,7 @@ func (d *drandInstance) stop(beaconID string) error {
 	return CLI().Run([]string{"drand", "stop", "--control", d.ctrlPort, "--id", beaconID})
 }
 
-func (d *drandInstance) shareLeader(t *testing.T, nodes, threshold, period int, beaconID string, sch scheme.Scheme) {
+func (d *drandInstance) shareLeader(t *testing.T, nodes, threshold, period int, beaconID string, sch crypto.Scheme) {
 	shareArgs := []string{
 		"drand",
 		"share",

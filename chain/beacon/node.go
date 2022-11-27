@@ -2,11 +2,11 @@ package beacon
 
 import (
 	"context"
-	"crypto"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	crypto2 "github.com/drand/drand/crypto"
+	dcrypto "github.com/drand/drand/crypto/vault"
+	"github.com/drand/drand/crypto/verifier"
 	"strings"
 	"sync"
 	"time"
@@ -45,11 +45,11 @@ type Handler struct {
 	// to communicate with other drand peers
 	client net.ProtocolClient
 	// keeps the cryptographic info (group share etc)
-	crypto *crypto.Vault
+	crypto *dcrypto.Vault
 	// main logic that treats incoming packet / new beacons created
 	chain    *chainStore
 	ticker   *ticker
-	verifier *crypto2.Verifier
+	verifier *verifier.Verifier
 
 	close   chan bool
 	addr    string
@@ -73,20 +73,20 @@ func NewHandler(c net.ProtocolClient, s chain.Store, conf *Config, l log.Logger,
 		return nil, errors.New("beacon: keypair not included in the given group")
 	}
 	addr := conf.Public.Address()
-	vault := crypto.NewVault(conf.Group, conf.Share)
+	vault := dcrypto.NewVault(conf.Group, conf.Share)
 	// insert genesis beacon
 	if err := s.Put(chain.GenesisBeacon(conf.Group.GenesisSeed)); err != nil {
 		return nil, err
 	}
 
 	ticker := newTicker(conf.Clock, conf.Group.Period, conf.Group.GenesisTime)
-	store := newChainStore(l, conf, c, crypto, s, ticker)
-	verifier := crypto2.NewVerifier(conf.Group.Scheme)
+	store := newChainStore(l, conf, c, vault, s, ticker)
+	verifier := verifier.NewVerifier(conf.Group.Scheme)
 
 	handler := &Handler{
 		conf:     conf,
 		client:   c,
-		crypto:   crypto,
+		crypto:   vault,
 		chain:    store,
 		verifier: verifier,
 		ticker:   ticker,
@@ -119,7 +119,7 @@ func (h *Handler) ProcessPartialBeacon(c context.Context, p *proto.PartialBeacon
 
 	msg := h.verifier.DigestMessage(p.GetRound(), p.GetPreviousSig())
 
-	idx, _ := key.Scheme.IndexOf(p.GetPartialSig())
+	idx, _ := h.verifier.ThresholdScheme.IndexOf(p.GetPartialSig())
 	if idx < 0 {
 		return nil, fmt.Errorf("invalid index %d in partial with msg %v", idx, msg)
 	}
@@ -132,7 +132,7 @@ func (h *Handler) ProcessPartialBeacon(c context.Context, p *proto.PartialBeacon
 
 	nodeName := node.Address()
 	// verify if request is valid
-	if err := key.Scheme.VerifyPartial(h.crypto.GetPub(), msg, p.GetPartialSig()); err != nil {
+	if err := h.verifier.ThresholdScheme.VerifyPartial(h.crypto.GetPub(), msg, p.GetPartialSig()); err != nil {
 		h.l.Errorw("",
 			"process_partial", addr, "err", err,
 			"prev_sig", shortSigStr(p.GetPreviousSig()),
@@ -382,7 +382,7 @@ func (h *Handler) broadcastNextPartial(current roundInfo, upon *chain.Beacon) {
 		round = current.round
 	}
 
-	msg := h.verifier.DigestMessage(round, previousSig)
+	msg := h.verifier.DigestMessage(1, previousSig)
 
 	currSig, err := h.crypto.SignPartial(msg)
 	if err != nil {

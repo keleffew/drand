@@ -30,7 +30,7 @@ import (
 	"github.com/drand/kyber/util/random"
 )
 
-// TODO make beacon tests not dependent on key.Scheme
+// TODO make beacon tests not dependent on scheme.ThresholdScheme
 
 // testBeaconServer implements a barebone service to be plugged in a net.DefaultService
 type testBeaconServer struct {
@@ -54,12 +54,12 @@ func (t *testBeaconServer) SyncChain(req *drand.SyncRequest, p drand.Protocol_Sy
 	return nil
 }
 
-func dkgShares(_ *testing.T, n, t int) ([]*key.Share, []kyber.Point) {
+func dkgShares(_ *testing.T, n, t int, scheme schemes.Scheme) ([]*key.Share, []kyber.Point) {
 	var priPoly *share.PriPoly
 	var pubPoly *share.PubPoly
 	var err error
 	for i := 0; i < n; i++ {
-		pri := share.NewPriPoly(key.KeyGroup, t, key.KeyGroup.Scalar().Pick(random.New()), random.New())
+		pri := share.NewPriPoly(scheme.KeyGroup, t, key.KeyGroup.Scalar().Pick(random.New()), random.New())
 		pub := pri.Commit(key.KeyGroup.Point().Base())
 		if priPoly == nil {
 			priPoly = pri
@@ -88,7 +88,7 @@ func dkgShares(_ *testing.T, n, t int) ([]*key.Share, []kyber.Point) {
 	_, commits := pubPoly.Info()
 	dkgShares := make([]*key.Share, n)
 	for i := 0; i < n; i++ {
-		sigs[i], err = key.Scheme.Sign(shares[i], msg)
+		sigs[i], err = scheme.ThresholdScheme.Sign(shares[i], msg)
 		if err != nil {
 			panic(err)
 		}
@@ -97,11 +97,11 @@ func dkgShares(_ *testing.T, n, t int) ([]*key.Share, []kyber.Point) {
 			Commits: commits,
 		}
 	}
-	sig, err := key.Scheme.Recover(pubPoly, msg, sigs, t, n)
+	sig, err := scheme.ThresholdScheme.Recover(pubPoly, msg, sigs, t, n)
 	if err != nil {
 		panic(err)
 	}
-	if err := key.Scheme.VerifyRecovered(pubPoly.Commit(), msg, sig); err != nil {
+	if err := scheme.ThresholdScheme.VerifyRecovered(pubPoly.Commit(), msg, sig); err != nil {
 		panic(err)
 	}
 	return dkgShares, commits
@@ -132,10 +132,10 @@ type BeaconTest struct {
 	nodes    map[int]*node
 	time     clock.FakeClock
 	prefix   string
-	scheme   scheme.Scheme
+	scheme   crypto.Scheme
 }
 
-func NewBeaconTest(t *testing.T, n, thr int, period time.Duration, genesisTime int64, sch scheme.Scheme, beaconID string) *BeaconTest {
+func NewBeaconTest(t *testing.T, n, thr int, period time.Duration, genesisTime int64, sch crypto.Scheme, beaconID string) *BeaconTest {
 	prefix, err := os.MkdirTemp(os.TempDir(), beaconID)
 	checkErr(err)
 	paths := createBoltStores(prefix, n)
@@ -216,9 +216,9 @@ func (b *BeaconTest) CreateNode(t *testing.T, i int) {
 		panic("Oh Oh")
 	}
 
-	currSig, err := key.Scheme.Sign(node.handler.conf.Share.PrivateShare(), []byte("hello"))
+	currSig, err := scheme.ThresholdScheme.Sign(node.handler.conf.Share.PrivateShare(), []byte("hello"))
 	checkErr(err)
-	sigIndex, _ := key.Scheme.IndexOf(currSig)
+	sigIndex, _ := scheme.ThresholdScheme.IndexOf(currSig)
 	if sigIndex != idx {
 		panic("invalid index")
 	}

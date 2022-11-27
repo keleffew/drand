@@ -3,7 +3,8 @@ package beacon
 import (
 	"context"
 	"fmt"
-	crypto2 "github.com/drand/drand/crypto"
+	"github.com/drand/drand/crypto/vault"
+	"github.com/drand/drand/crypto/verifier"
 
 	"github.com/drand/drand/chain"
 	"github.com/drand/drand/key"
@@ -26,8 +27,8 @@ type chainStore struct {
 	conf        *Config
 	client      net.ProtocolClient
 	syncm       *SyncManager
-	verifier    *crypto2.Verifier
-	crypto      *crypto2.cryptoStore
+	verifier    *verifier.Verifier
+	crypto      *vault.Vault
 	ticker      *ticker
 	done        chan bool
 	newPartials chan partialInfo
@@ -39,7 +40,7 @@ type chainStore struct {
 	beaconStoredAgg chan *chain.Beacon
 }
 
-func newChainStore(l log.Logger, cf *Config, cl net.ProtocolClient, c *crypto2.cryptoStore, store chain.Store, t *ticker) *chainStore {
+func newChainStore(l log.Logger, cf *Config, cl net.ProtocolClient, c *vault.Vault, store chain.Store, t *ticker) *chainStore {
 	// we make sure the chain is increasing monotonically
 	as := newAppendStore(store)
 
@@ -57,14 +58,14 @@ func newChainStore(l log.Logger, cf *Config, cl net.ProtocolClient, c *crypto2.c
 		Log:         l,
 		Store:       cbs,
 		BoltdbStore: store,
-		Info:        c.chain,
+		Info:        c.GetInfo(),
 		Client:      cl,
 		Clock:       cf.Clock,
 		NodeAddr:    cf.Public.Address(),
 	})
 	go syncm.Run()
 
-	verifier := crypto2.NewVerifier(cf.Group.Scheme)
+	verifier := verifier.NewVerifier(cf.Group.Scheme)
 
 	cs := &chainStore{
 		CallbackStore:   cbs,
@@ -116,7 +117,7 @@ func (c *chainStore) runAggregator() {
 		c.l.Fatalw("", "chain_aggregator", "loading", "last_beacon", err)
 	}
 
-	var cache = newPartialCache(c.l)
+	var cache = newPartialCache(c.l, *c.verifier)
 	for {
 		select {
 		case <-c.done:
@@ -158,12 +159,12 @@ func (c *chainStore) runAggregator() {
 
 			msg := c.verifier.DigestMessage(roundCache.round, roundCache.prev)
 
-			finalSig, err := key.Scheme.Recover(c.crypto.GetPub(), msg, roundCache.Partials(), thr, n)
+			finalSig, err := c.verifier.ThresholdScheme.Recover(c.crypto.GetPub(), msg, roundCache.Partials(), thr, n)
 			if err != nil {
 				c.l.Errorw("invalid_recovery", "error", err, "round", pRound, "got", fmt.Sprintf("%d/%d", roundCache.Len(), n))
 				break
 			}
-			if err := key.Scheme.VerifyRecovered(c.crypto.GetPub().Commit(), msg, finalSig); err != nil {
+			if err := c.verifier.ThresholdScheme.VerifyRecovered(c.crypto.GetPub().Commit(), msg, finalSig); err != nil {
 				c.l.Errorw("invalid_sig", "error", err, "round", pRound)
 				break
 			}

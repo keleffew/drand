@@ -13,7 +13,7 @@ import (
 )
 
 func TestSchemeStore(t *testing.T) {
-	sch, _ := scheme.ReadSchemeByEnv()
+	sch := scheme.GetSchemeFromEnv()
 
 	dir, err := os.MkdirTemp("", "*")
 	require.NoError(t, err)
@@ -41,9 +41,9 @@ func TestSchemeStore(t *testing.T) {
 
 	// test if store sets to nil prev signature depending on scheme
 	// with chained scheme, it should keep the consistency between prev signature and signature
-	if sch.DecouplePrevSig && beaconSaved.PreviousSig != nil {
+	if !sch.IsPreviousSigSignificant && beaconSaved.PreviousSig != nil {
 		t.Errorf("previous signature should be nil")
-	} else if !sch.DecouplePrevSig && !bytes.Equal(beaconSaved.PreviousSig, genesisBeacon.Signature) {
+	} else if sch.IsPreviousSigSignificant && !bytes.Equal(beaconSaved.PreviousSig, genesisBeacon.Signature) {
 		t.Errorf("previous signature on last beacon [%s] should be equal to previous beacon signature [%s]",
 			beaconSaved.PreviousSig, genesisBeacon.PreviousSig)
 	}
@@ -57,9 +57,9 @@ func TestSchemeStore(t *testing.T) {
 	err = ss.Put(newBeacon)
 
 	// test if store checks consistency between signature and prev signature depending on the scheme
-	if sch.DecouplePrevSig && err != nil {
+	if !sch.IsPreviousSigSignificant && err != nil {
 		t.Errorf("new beacon should be allow to be put on store")
-	} else if !sch.DecouplePrevSig && err == nil {
+	} else if sch.IsPreviousSigSignificant && err == nil {
 		t.Errorf("new beacon should not be allow to be put on store")
 	}
 }

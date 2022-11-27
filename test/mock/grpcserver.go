@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/drand/drand/crypto"
 	"sync"
 	"time"
 
@@ -146,10 +147,10 @@ func testValid(d *Data) {
 		invMsg = sha256Hash(roundToBytes(d.Round - 1))
 	}
 
-	if err := key.Scheme.VerifyRecovered(pubPoint, msg, sig); err != nil {
+	if err := scheme.ThresholdScheme.VerifyRecovered(pubPoint, msg, sig); err != nil {
 		panic(err)
 	}
-	if err := key.Scheme.VerifyRecovered(pubPoint, invMsg, sig); err == nil {
+	if err := scheme.ThresholdScheme.VerifyRecovered(pubPoint, invMsg, sig); err == nil {
 		panic("should be invalid signature")
 	}
 	//fmt.Println("valid signature")
@@ -175,10 +176,10 @@ type Data struct {
 	Genesis           int64
 	Period            time.Duration
 	BadSecondRound    bool
-	Scheme            scheme.Scheme
+	Scheme            crypto.Scheme
 }
 
-func generateMockData(sch scheme.Scheme) *Data {
+func generateMockData(sch crypto.Scheme) *Data {
 	secret := key.KeyGroup.Scalar().Pick(random.New())
 	public := key.KeyGroup.Point().Mul(secret, nil)
 	var previous [32]byte
@@ -196,7 +197,7 @@ func generateMockData(sch scheme.Scheme) *Data {
 	}
 
 	sshare := share.PriShare{I: 0, V: secret}
-	tsig, err := key.Scheme.Sign(&sshare, msg)
+	tsig, err := scheme.ThresholdScheme.Sign(&sshare, msg)
 	if err != nil {
 		panic(err)
 	}
@@ -231,7 +232,7 @@ func nextMockData(d *Data) *Data {
 	}
 
 	sshare := share.PriShare{I: 0, V: d.secret}
-	tsig, err := key.Scheme.Sign(&sshare, msg)
+	tsig, err := scheme.ThresholdScheme.Sign(&sshare, msg)
 	if err != nil {
 		panic(err)
 	}
@@ -252,7 +253,7 @@ func nextMockData(d *Data) *Data {
 }
 
 // NewMockGRPCPublicServer creates a listener that provides valid single-node randomness.
-func NewMockGRPCPublicServer(bind string, badSecondRound bool, sch scheme.Scheme) (net.Listener, net.Service) {
+func NewMockGRPCPublicServer(bind string, badSecondRound bool, sch crypto.Scheme) (net.Listener, net.Service) {
 	d := generateMockData(sch)
 	testValid(d)
 
@@ -269,7 +270,7 @@ func NewMockGRPCPublicServer(bind string, badSecondRound bool, sch scheme.Scheme
 }
 
 // NewMockServer creates a server interface not bound to a newtork port
-func NewMockServer(badSecondRound bool, sch scheme.Scheme) net.Service {
+func NewMockServer(badSecondRound bool, sch crypto.Scheme) net.Service {
 	d := generateMockData(sch)
 	testValid(d)
 
@@ -296,7 +297,7 @@ func roundToBytes(r int) []byte {
 }
 
 // NewMockBeacon provides a random beacon and the chain it validates against
-func NewMockBeacon(sch scheme.Scheme) (*drand.ChainInfoPacket, *drand.PublicRandResponse) {
+func NewMockBeacon(sch crypto.Scheme) (*drand.ChainInfoPacket, *drand.PublicRandResponse) {
 	d := generateMockData(sch)
 	s := newMockServer(d)
 	c, _ := s.ChainInfo(context.Background(), nil)

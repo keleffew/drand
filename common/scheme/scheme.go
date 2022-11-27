@@ -3,6 +3,8 @@ package scheme
 import (
 	"fmt"
 	"os"
+
+	"github.com/drand/drand/crypto"
 )
 
 // DefaultSchemeID is the default scheme ID.
@@ -70,11 +72,16 @@ func ReadSchemeByEnv() (Scheme, bool) {
 
 // GetSchemeFromEnv allows the user to retrieve the scheme configuration looking by the ID set on an
 // environmental variable. If the scheme is not found, function will panic.
-func GetSchemeFromEnv() Scheme {
+func GetSchemeFromEnv() crypto.Scheme {
 	sch, ok := ReadSchemeByEnv()
 	if !ok {
-		panic("scheme is not valid")
+		panic("Invalid scheme name from env variable $SCHEME_ID")
 	}
 
-	return sch
+	ret := crypto.SchemeFromName(sch.ID)
+	if ret == nil {
+		panic("Invalid scheme for crypto ")
+	}
+
+	return *ret
 }

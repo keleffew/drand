@@ -12,7 +12,6 @@ import (
 	"github.com/kabukky/httpscerts"
 
 	"github.com/drand/drand/client/grpc"
-	"github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/core"
 	"github.com/drand/drand/fs"
 	"github.com/drand/drand/key"
@@ -27,7 +26,7 @@ type LocalNode struct {
 	i          int
 	period     string
 	beaconID   string
-	scheme     scheme.Scheme
+	scheme     crypto.Scheme
 	publicPath string
 	certPath   string
 
@@ -49,7 +48,7 @@ type LocalNode struct {
 	daemon *core.DrandDaemon
 }
 
-func NewLocalNode(i int, period string, base string, tls bool, bindAddr string, sch scheme.Scheme, beaconID string) Node {
+func NewLocalNode(i int, period string, base string, tls bool, bindAddr string, sch crypto.Scheme, beaconID string) Node {
 	nbase := path.Join(base, fmt.Sprintf("node-%d", i))
 	os.MkdirAll(nbase, 0740)
 	logPath := path.Join(nbase, "log")

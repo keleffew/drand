@@ -58,19 +58,19 @@ type echoBroadcast struct {
 	dealCh chan dkg.DealBundle
 	respCh chan dkg.ResponseBundle
 	justCh chan dkg.JustificationBundle
-	verif  verifier
+	verif  verifyPacket
 }
 
 type packet = dkg.Packet
 
 var _ Broadcast = (*echoBroadcast)(nil)
 
-// verifier is a type for  a function that can verify the validity of a dkg
+// verifyPacket is a type for  a function that can verify the validity of a dkg
 // Packet, namely that the signature is correct.
-type verifier func(packet) error
+type verifyPacket func(packet) error
 
 func newEchoBroadcast(l log.Logger, version commonutils.Version, beaconID string,
-	c net.ProtocolClient, own string, to []*key.Node, v verifier) *echoBroadcast {
+	c net.ProtocolClient, own string, to []*key.Node, v verifyPacket) *echoBroadcast {
 	return &echoBroadcast{
 		l:          l.Named("echoBroadcast"),
 		version:    version,

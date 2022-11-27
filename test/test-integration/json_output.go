@@ -29,7 +29,7 @@ func main() {
 	sch := dscheme.GetSchemeFromEnv()
 	verifier := crypto.NewVerifier(sch)
 
-	msg := verifier.DigestMessage(uint64(round), previousSig)
+	msg := verifier.DigestMessage(chain.RoundToBytes(1) previousSig)
 	signature, err := scheme.Sign(private, msg)
 	if err != nil {
 		panic(err)

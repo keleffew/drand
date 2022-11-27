@@ -20,7 +20,6 @@ import (
 
 	"github.com/drand/drand/chain"
 	"github.com/drand/drand/common"
-	"github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/key"
 	"github.com/drand/drand/log"
 	"github.com/drand/drand/net"
@@ -64,7 +63,7 @@ type DrandTestScenario struct {
 	newThr        int
 	period        time.Duration
 	catchupPeriod time.Duration
-	scheme        scheme.Scheme
+	scheme        crypto.Scheme
 	beaconID      string
 
 	// only set after the DKG
@@ -89,7 +88,7 @@ type DrandTestScenario struct {
 // to delete at the end of the test. As well, it returns a public grpc
 // client that can reach any drand node.
 // Deprecated: do not use
-func BatchNewDrand(t *testing.T, n int, insecure bool, sch scheme.Scheme, beaconID string, opts ...ConfigOption) (
+func BatchNewDrand(t *testing.T, n int, insecure bool, sch crypto.Scheme, beaconID string, opts ...ConfigOption) (
 	daemons []*DrandDaemon, drands []*BeaconProcess, group *key.Group, dir string, certPaths []string,
 ) {
 	t.Logf("Creating %d nodes for beaconID %s", n, beaconID)
@@ -197,7 +196,7 @@ func getSleepDuration() time.Duration {
 // NewDrandTest creates a drand test scenario with initial n nodes and ready to
 // run a DKG for the given threshold that will then launch the beacon with the
 // specified period
-func NewDrandTestScenario(t *testing.T, n, thr int, period time.Duration, sch scheme.Scheme, beaconID string) *DrandTestScenario {
+func NewDrandTestScenario(t *testing.T, n, thr int, period time.Duration, sch crypto.Scheme, beaconID string) *DrandTestScenario {
 	dt := new(DrandTestScenario)
 	beaconID = common.GetCanonicalBeaconID(beaconID)
 

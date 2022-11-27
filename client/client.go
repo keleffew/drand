@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/drand/drand/crypto"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -83,7 +84,11 @@ func makeClient(cfg *clientConfig) (Client, error) {
 
 	verifiers := make([]Client, 0, len(cfg.clients))
 	for _, source := range cfg.clients {
-		opts := Opts{scheme: cfg.chainInfo.Scheme, strict: cfg.fullVerify}
+		sch := crypto.SchemeFromName(cfg.chainInfo.Scheme)
+		if sch == nil {
+			return nil, fmt.Errorf("invalid scheme name provided")
+		}
+		opts := Opts{scheme: *sch, strict: cfg.fullVerify}
 
 		nv := newVerifyingClient(source, cfg.previousResult, opts)
 		verifiers = append(verifiers, nv)

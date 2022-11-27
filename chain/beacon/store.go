@@ -3,6 +3,7 @@ package beacon
 import (
 	"bytes"
 	"fmt"
+	"github.com/drand/drand/crypto"
 	"runtime"
 	"sync"
 	"time"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/drand/drand/chain"
 	"github.com/drand/drand/common"
-	"github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/key"
 	"github.com/drand/drand/log"
 	"github.com/drand/drand/metrics"
@@ -57,12 +57,12 @@ func (a *appendStore) Put(b *chain.Beacon) error {
 // schemeStore is a store that run different checks depending on what scheme is being used.
 type schemeStore struct {
 	chain.Store
-	sch  scheme.Scheme
+	sch  crypto.Scheme
 	last *chain.Beacon
 	sync.Mutex
 }
 
-func NewSchemeStore(s chain.Store, sch scheme.Scheme) chain.Store {
+func NewSchemeStore(s chain.Store, sch crypto.Scheme) chain.Store {
 	last, _ := s.Last()
 	return &schemeStore{
 		Store: s,
@@ -78,7 +78,7 @@ func (a *schemeStore) Put(b *chain.Beacon) error {
 	// If the scheme is unchained, previous signature is set to nil. In that case,
 	// relationship between signature in the previous beacon and previous signature
 	// on the actual beacon is not necessary. Otherwise, it will be checked.
-	if a.sch.DecouplePrevSig {
+	if !a.sch.IsPreviousSigSignificant {
 		b.PreviousSig = nil
 	} else if !bytes.Equal(a.last.Signature, b.PreviousSig) {
 		if pb, err := a.Get(b.Round - 1); err != nil || !bytes.Equal(pb.Signature, b.PreviousSig) {

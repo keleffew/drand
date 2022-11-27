@@ -37,7 +37,7 @@ type Scheme struct {
 	// Pairing is the underlying pairing Suite.
 	Pairing pairing.Suite
 	// the hash function used by this scheme
-	HashFunc hash.Hash
+	HashFunc func() hash.Hash
 }
 
 type schnorrSuite struct {
@@ -48,10 +48,6 @@ func (s *schnorrSuite) RandomStream() cipher.Stream {
 	return random.New()
 }
 
-func (s *Scheme) Sign(msg []byte) ([]byte, error) {
-
-}
-
 func NewPedersenBLSChained() (cs *Scheme) {
 	var Pairing = bls.NewBLS12381Suite()
 	var KeyGroup = Pairing.G1()
@@ -59,7 +55,7 @@ func NewPedersenBLSChained() (cs *Scheme) {
 	var ThresholdScheme = tbls.NewThresholdSchemeOnG2(Pairing)
 	var AuthScheme = signBls.NewSchemeOnG2(Pairing)
 	var DKGAuthScheme = schnorr.NewScheme(&schnorrSuite{KeyGroup})
-	var hashFunc = func() hash.Hash { h, _ := blake2b.New256(nil); return h }
+	var HashFunc = func() hash.Hash { h, _ := blake2b.New256(nil); return h }
 
 	return &Scheme{
 		Name:                     "pedersen-bls-chained",
@@ -70,20 +66,39 @@ func NewPedersenBLSChained() (cs *Scheme) {
 		AuthScheme:               AuthScheme,
 		DKGAuthScheme:            DKGAuthScheme,
 		Pairing:                  Pairing,
-		HashFunc:                 hashFunc,
+		HashFunc:                 HashFunc,
 	}
 }
 
 func NewPedersenBLSUnchained() (cs *Scheme) {
+	var Pairing = bls.NewBLS12381Suite()
+	var KeyGroup = Pairing.G2()
+	var SigGroup = Pairing.G1()
+	var ThresholdScheme = tbls.NewThresholdSchemeOnG1(Pairing)
+	var AuthScheme = signBls.NewSchemeOnG1(Pairing)
+	var DKGAuthScheme = schnorr.NewScheme(&schnorrSuite{KeyGroup})
+	var HashFunc = func() hash.Hash { h, _ := blake2b.New256(nil); return h }
+
 	return &Scheme{
 		Name:                     "pedersen-bls-unchained",
 		IsPreviousSigSignificant: false,
-		SigGroup:                 nil,
-		KeyGroup:                 nil,
-		ThresholdScheme:          nil,
-		AuthScheme:               nil,
-		DKGAuthScheme:            nil,
-		Pairing:                  nil,
-		HashFunc:                 nil,
+		SigGroup:                 SigGroup,
+		KeyGroup:                 KeyGroup,
+		ThresholdScheme:          ThresholdScheme,
+		AuthScheme:               AuthScheme,
+		DKGAuthScheme:            DKGAuthScheme,
+		Pairing:                  Pairing,
+		HashFunc:                 HashFunc,
+	}
+}
+
+func SchemeFromName(schemeName string) (cs *Scheme) {
+	switch schemeName {
+	case "pedersen-bls-chained":
+		return NewPedersenBLSChained()
+	case "pedersen-bls-unchained":
+		return NewPedersenBLSUnchained()
+	default:
+		return nil
 	}
 }
