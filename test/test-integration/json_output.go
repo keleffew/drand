@@ -4,10 +4,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/drand/drand/crypto"
+	verifier2 "github.com/drand/drand/crypto/verifier"
 
 	dscheme "github.com/drand/drand/common/scheme"
-	"github.com/drand/drand/key"
 	"github.com/drand/kyber/sign/bls"
 	"github.com/drand/kyber/util/random"
 )
@@ -16,9 +15,11 @@ import (
 // interoperability testing with the other repos such as drandjs.
 
 func main() {
-	private := key.KeyGroup.Scalar().Pick(random.New())
-	public := key.KeyGroup.Point().Mul(private, nil)
-	scheme := bls.NewSchemeOnG2(key.Pairing)
+	sch := dscheme.GetSchemeFromEnv()
+
+	private := sch.KeyGroup.Scalar().Pick(random.New())
+	public := sch.KeyGroup.Point().Mul(private, nil)
+	scheme := bls.NewSchemeOnG2(sch.Pairing)
 	round := 1984
 
 	previousSig, err := scheme.Sign(private, []byte("Test Signature"))
@@ -26,10 +27,9 @@ func main() {
 		panic(err)
 	}
 
-	sch := dscheme.GetSchemeFromEnv()
-	verifier := crypto.NewVerifier(sch)
+	verifier := verifier2.NewVerifier(sch)
 
-	msg := verifier.DigestMessage(chain.RoundToBytes(1) previousSig)
+	msg := verifier.DigestMessage(uint64(round), previousSig)
 	signature, err := scheme.Sign(private, msg)
 	if err != nil {
 		panic(err)
