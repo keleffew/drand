@@ -1,30 +1,29 @@
-package chain
+package verifier
 
 import (
-	"github.com/drand/drand/crypto"
-	"testing"
-
+	"github.com/drand/drand/chain"
 	"github.com/drand/drand/common/scheme"
-	"github.com/drand/drand/key"
 	"github.com/drand/kyber/util/random"
+	"testing"
 )
 
 func BenchmarkVerifyBeacon(b *testing.B) {
-	secret := key.KeyGroup.Scalar().Pick(random.New())
-	public := key.KeyGroup.Point().Mul(secret, nil)
-
 	sch := scheme.GetSchemeFromEnv()
-	verifier := crypto.NewVerifier(sch)
+
+	secret := sch.KeyGroup.Scalar().Pick(random.New())
+	public := sch.KeyGroup.Point().Mul(secret, nil)
+
+	verifier := NewVerifier(sch)
 
 	var round uint64 = 16
 	prevSig := []byte("My Sweet Previous Signature")
 
-	msg := verifier.DigestMessage(chain.RoundToBytes(1) prevSig)
+	msg := verifier.DigestMessage(round, prevSig)
 
-	sig, _ := key.AuthScheme.Sign(secret, msg)
+	sig, _ := sch.AuthScheme.Sign(secret, msg)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		b := Beacon{
+		b := chain.Beacon{
 			PreviousSig: prevSig,
 			Round:       16,
 			Signature:   sig,

@@ -187,7 +187,7 @@ func (h *Handler) Start() error {
 	h.Unlock()
 
 	_, tTime := chain.NextRound(h.conf.Clock.Now().Unix(), h.conf.Group.Period, h.conf.Group.GenesisTime)
-	h.l.Infow("", "beacon", "start")
+	h.l.Infow("", "beacon", "start", "scheme", h.conf.Share.Scheme.Name)
 	go h.run(tTime)
 
 	return nil
@@ -402,6 +402,7 @@ func (h *Handler) broadcastNextPartial(current roundInfo, upon *chain.Beacon) {
 
 	h.chain.NewValidPartial(h.addr, packet)
 	for _, id := range h.crypto.GetGroup().Nodes {
+		idt := id.Identity
 		if h.addr == id.Address() {
 			continue
 		}
@@ -415,7 +416,7 @@ func (h *Handler) broadcastNextPartial(current roundInfo, upon *chain.Beacon) {
 				}
 				return
 			}
-		}(id.Identity)
+		}(idt)
 	}
 }
 

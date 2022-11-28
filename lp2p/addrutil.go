@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/transport"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 )
@@ -16,7 +17,7 @@ const (
 )
 
 // resolveAddresses resolves addresses in parallel
-func resolveAddresses(ctx context.Context, addrs []ma.Multiaddr, resolver *madns.Resolver) ([]peer.AddrInfo, error) {
+func resolveAddresses(ctx context.Context, addrs []ma.Multiaddr, resolver transport.Resolver) ([]peer.AddrInfo, error) {
 	ctx, cancel := context.WithTimeout(ctx, dnsResolveTimeout)
 	defer cancel()
 
@@ -31,6 +32,7 @@ func resolveAddresses(ctx context.Context, addrs []ma.Multiaddr, resolver *madns
 	maddrC := make(chan ma.Multiaddr)
 
 	for _, addr := range addrs {
+		addr := addr
 		// check whether address ends in `ipfs/Qm...`
 		if _, last := ma.SplitLast(addr); last.Protocol().Code == ma.P_IPFS {
 			maddrs = append(maddrs, addr)

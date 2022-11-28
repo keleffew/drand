@@ -155,13 +155,19 @@ func (c *Client) Watch(ctx context.Context) <-chan client.Result {
 	outerCh := make(chan client.Result)
 	end := c.Sub(innerCh)
 
+	w := sync.WaitGroup{}
+	w.Add(1)
+
 	go func() {
+		defer close(outerCh)
+
+		w.Done()
+
 		for {
 			select {
 			// TODO: do not copy by assignment any drand.PublicRandResponse
 			case resp, ok := <-innerCh: //nolint:govet
 				if !ok {
-					close(outerCh)
 					return
 				}
 				dat := &client.RandomData{
@@ -175,19 +181,23 @@ func (c *Client) Watch(ctx context.Context) <-chan client.Result {
 				}
 				select {
 				case outerCh <- dat:
+					c.log.Debugw("processed random beacon", "round", dat.Round())
 				default:
 					c.log.Warnw("", "gossip client", "randomness notification dropped due to a full channel")
 				}
 			case <-ctx.Done():
-				close(outerCh)
+				c.log.Debugw("client.Watch done")
 				end()
 				// drain leftover on innerCh
 				for range innerCh {
 				}
+				c.log.Debugw("client.Watch finished draining the innerCh")
 				return
 			}
 		}
 	}()
+
+	w.Wait()
 
 	return outerCh
 }

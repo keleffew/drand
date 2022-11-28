@@ -3,6 +3,7 @@ package key
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/drand/drand/common/scheme"
 	"os"
 	"strconv"
 	"testing"
@@ -10,7 +11,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/require"
 
-	kyber "github.com/drand/kyber"
+	"github.com/drand/kyber"
 	"github.com/drand/kyber/share"
 	"github.com/drand/kyber/util/random"
 )
@@ -68,12 +69,13 @@ func TestKeySignature(t *testing.T) {
 func TestKeyDistributedPublic(t *testing.T) {
 	n := 4
 	publics := make([]kyber.Point, n)
+	sch := scheme.GetSchemeFromEnv()
 	for i := range publics {
-		key := KeyGroup.Scalar().Pick(random.New())
-		publics[i] = KeyGroup.Point().Mul(key, nil)
+		key := sch.KeyGroup.Scalar().Pick(random.New())
+		publics[i] = sch.KeyGroup.Point().Mul(key, nil)
 	}
 
-	distPublic := &DistPublic{Coefficients: publics}
+	distPublic := &DistPublic{Coefficients: publics, Scheme: sch}
 	dtoml := distPublic.TOML()
 
 	var writer bytes.Buffer
@@ -92,7 +94,7 @@ func TestKeyDistributedPublic(t *testing.T) {
 		b, _ := publics[i].MarshalBinary()
 		coeffs = append(coeffs, hex.EncodeToString(b))
 	}
-	checkTOML := &DistPublicTOML{Coefficients: coeffs}
+	checkTOML := &DistPublicTOML{Coefficients: coeffs, SchemeName: sch.Name}
 
 	check := &DistPublic{}
 	require.NoError(t, check.FromTOML(checkTOML))
@@ -115,13 +117,15 @@ func TestShare(t *testing.T) {
 	n := 5
 	s := new(Share)
 	s.Commits = make([]kyber.Point, n)
+	s.Scheme = scheme.GetSchemeFromEnv()
 	for i := 0; i < n; i++ {
-		s.Commits[i] = KeyGroup.Point().Pick(random.New())
+		s.Commits[i] = s.Scheme.KeyGroup.Point().Pick(random.New())
 	}
-	s.Share = &share.PriShare{V: KeyGroup.Scalar().Pick(random.New()), I: 0}
+	s.Share = &share.PriShare{V: s.Scheme.KeyGroup.Scalar().Pick(random.New()), I: 0}
 
 	stoml := s.TOML()
 	s2 := new(Share)
+	s2.Scheme = s.Scheme
 	require.NoError(t, s2.FromTOML(stoml))
 	poly1 := s.Commits
 	poly2 := s2.Commits
@@ -145,12 +149,14 @@ func BatchIdentities(n int) ([]*Pair, *Group) {
 			Identity: privs[i].Public,
 		}
 	}
-	fakeDistKey := KeyGroup.Point().Pick(random.New())
-	distKey := &DistPublic{[]kyber.Point{fakeDistKey}}
+	scheme := scheme.GetSchemeFromEnv()
+	fakeDistKey := scheme.KeyGroup.Point().Pick(random.New())
+	distKey := &DistPublic{Coefficients: []kyber.Point{fakeDistKey}, Scheme: scheme}
 	group := &Group{
 		Threshold: DefaultThreshold(n),
 		Nodes:     pubs,
 		PublicKey: distKey,
+		Scheme:    scheme,
 	}
 	return privs, group
 }

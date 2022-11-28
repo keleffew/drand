@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/drand/drand/common/scheme"
 	"testing"
 	"time"
 
@@ -63,14 +64,14 @@ func TestValidateGroupTransitionBeaconID(t *testing.T) {
 func TestValidateGroupTransitionGenesisSeed(t *testing.T) {
 	d := BeaconProcess{log: log.DefaultLogger()}
 	var oldgrp, newgrp key.Group
-
+	sch := scheme.GetSchemeFromEnv()
 	randomDistPublic := func(n int) *key.DistPublic {
 		publics := make([]kyber.Point, n)
 		for i := range publics {
-			k := key.KeyGroup.Scalar().Pick(random.New())
-			publics[i] = key.KeyGroup.Point().Mul(k, nil)
+			k := sch.KeyGroup.Scalar().Pick(random.New())
+			publics[i] = sch.KeyGroup.Point().Mul(k, nil)
 		}
-		return &key.DistPublic{Coefficients: publics}
+		return &key.DistPublic{Coefficients: publics, Scheme: sch}
 	}
 
 	oldgrp = key.Group{PublicKey: randomDistPublic(4)}

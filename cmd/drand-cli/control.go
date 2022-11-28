@@ -194,7 +194,7 @@ func leadShareCmd(c *cli.Context) error {
 		return fmt.Errorf("catchup period given is invalid: %w", err)
 	}
 
-	var sch crypto.Scheme
+	var sch scheme.Scheme
 	if sch, err = scheme.GetSchemeByIDWithDefault(c.String(schemeFlag.Name)); err != nil {
 		return fmt.Errorf("scheme given is invalid: %w", err)
 	}

@@ -17,11 +17,10 @@ import (
 	"golang.org/x/crypto/blake2b"
 
 	commonutils "github.com/drand/drand/common"
-	"github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/protobuf/common"
 	proto "github.com/drand/drand/protobuf/drand"
-	kyber "github.com/drand/kyber"
-	dkg "github.com/drand/kyber/share/dkg"
+	"github.com/drand/kyber"
+	"github.com/drand/kyber/share/dkg"
 )
 
 // XXX new256 returns an error so we make a wrapper around
@@ -165,7 +164,9 @@ func (g *Group) Equal(g2 *Group) bool {
 	if g.TransitionTime != g2.TransitionTime {
 		return false
 	}
-
+	if g.Scheme.Name != g2.Scheme.Name {
+		return false
+	}
 	for i := 0; i < g.Len(); i++ {
 		if !g.Nodes[i].Equal(g2.Nodes[i]) {
 			return false
@@ -216,10 +217,11 @@ func (g *Group) FromTOML(i interface{}) (err error) {
 		}
 	}
 
-	if sch := crypto.SchemeFromName(gt.SchemeID); sch != nil {
+	sch := crypto.SchemeFromName(gt.SchemeID)
+	if sch != nil {
 		g.Scheme = *sch
 	} else {
-		return fmt.Errorf("unable to isntantiate crypto Scheme name %s", gt.SchemeID)
+		return fmt.Errorf("unable to isntantiate crypto Scheme name '%s'", gt.SchemeID)
 	}
 
 	if g.Threshold < dkg.MinimumT(len(gt.Nodes)) {
@@ -230,7 +232,7 @@ func (g *Group) FromTOML(i interface{}) (err error) {
 
 	if gt.PublicKey != nil {
 		// dist key only if dkg ran
-		g.PublicKey = &DistPublic{}
+		g.PublicKey = &DistPublic{Scheme: *sch}
 		if err = g.PublicKey.FromTOML(gt.PublicKey); err != nil {
 			return fmt.Errorf("group: unwrapping distributed public key: %w", err)
 		}
@@ -387,11 +389,7 @@ func GroupFromProto(g *proto.GroupPacket) (*Group, error) {
 		return nil, fmt.Errorf("period time is zero")
 	}
 
-	sch, err := scheme.GetSchemeByIDWithDefault(g.GetSchemeID())
-	if err != nil {
-		return nil, err
-	}
-	scheme := crypto.SchemeFromName(sch.ID)
+	scheme := crypto.SchemeFromName(g.GetSchemeID())
 	if scheme == nil {
 		return nil, fmt.Errorf("invalid Scheme name in GroupPacket")
 	}
@@ -400,6 +398,7 @@ func GroupFromProto(g *proto.GroupPacket) (*Group, error) {
 	beaconID := g.GetMetadata().GetBeaconID()
 
 	var dist = new(DistPublic)
+	dist.Scheme = *scheme
 	for _, coeff := range g.DistKey {
 		c := scheme.KeyGroup.Point()
 		if err := c.UnmarshalBinary(coeff); err != nil {
@@ -446,6 +445,7 @@ func (g *Group) ToProto(version commonutils.Version) *proto.GroupPacket {
 				Tls:       id.IsTLS(),
 				Key:       key,
 				Signature: id.Signature,
+				Scheme:    g.Scheme.Name,
 			},
 			Index: id.Index,
 		}

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/drand/drand/crypto"
+	verifier2 "github.com/drand/drand/crypto/verifier"
+	"github.com/drand/kyber/share/dkg"
 	"os"
 	"path"
 	"sync"
@@ -50,17 +52,16 @@ func (t *testBeaconServer) SyncChain(req *drand.SyncRequest, p drand.Protocol_Sy
 	if t.disable {
 		return errors.New("disabled server")
 	}
-	SyncChain(t.h.l, t.h.chain, req, p)
-	return nil
+	return SyncChain(t.h.l, t.h.chain, req, p)
 }
 
-func dkgShares(_ *testing.T, n, t int, scheme schemes.Scheme) ([]*key.Share, []kyber.Point) {
+func dkgShares(_ *testing.T, n, t int, scheme crypto.Scheme) ([]*key.Share, []kyber.Point) {
 	var priPoly *share.PriPoly
 	var pubPoly *share.PubPoly
 	var err error
 	for i := 0; i < n; i++ {
-		pri := share.NewPriPoly(scheme.KeyGroup, t, key.KeyGroup.Scalar().Pick(random.New()), random.New())
-		pub := pri.Commit(key.KeyGroup.Point().Base())
+		pri := share.NewPriPoly(scheme.KeyGroup, t, scheme.KeyGroup.Scalar().Pick(random.New()), random.New())
+		pub := pri.Commit(scheme.KeyGroup.Point().Base())
 		if priPoly == nil {
 			priPoly = pri
 			pubPoly = pub
@@ -76,7 +77,7 @@ func dkgShares(_ *testing.T, n, t int, scheme schemes.Scheme) ([]*key.Share, []k
 		}
 	}
 	shares := priPoly.Shares(n)
-	secret, err := share.RecoverSecret(key.KeyGroup, shares, t, n)
+	secret, err := share.RecoverSecret(scheme.KeyGroup, shares, t, n)
 	if err != nil {
 		panic(err)
 	}
@@ -85,6 +86,7 @@ func dkgShares(_ *testing.T, n, t int, scheme schemes.Scheme) ([]*key.Share, []k
 	}
 	msg := []byte("Hello world")
 	sigs := make([][]byte, n)
+
 	_, commits := pubPoly.Info()
 	dkgShares := make([]*key.Share, n)
 	for i := 0; i < n; i++ {
@@ -92,16 +94,13 @@ func dkgShares(_ *testing.T, n, t int, scheme schemes.Scheme) ([]*key.Share, []k
 		if err != nil {
 			panic(err)
 		}
-		dkgShares[i] = &key.Share{
-			Share:   shares[i],
-			Commits: commits,
-		}
+		dkgShares[i] = &key.Share{DistKeyShare: dkg.DistKeyShare{Share: shares[i], Commits: commits}, Scheme: scheme}
 	}
 	sig, err := scheme.ThresholdScheme.Recover(pubPoly, msg, sigs, t, n)
 	if err != nil {
 		panic(err)
 	}
-	if err := scheme.ThresholdScheme.VerifyRecovered(pubPoly.Commit(), msg, sig); err != nil {
+	if err = scheme.ThresholdScheme.VerifyRecovered(pubPoly.Commit(), msg, sig); err != nil {
 		panic(err)
 	}
 	return dkgShares, commits
@@ -136,15 +135,14 @@ type BeaconTest struct {
 }
 
 func NewBeaconTest(t *testing.T, n, thr int, period time.Duration, genesisTime int64, sch crypto.Scheme, beaconID string) *BeaconTest {
-	prefix, err := os.MkdirTemp(os.TempDir(), beaconID)
-	checkErr(err)
+	prefix := t.TempDir()
 	paths := createBoltStores(prefix, n)
-	shares, commits := dkgShares(t, n, thr)
+	shares, commits := dkgShares(t, n, thr, sch)
 	privs, group := test.BatchIdentities(n, sch, beaconID)
 	group.Threshold = thr
 	group.Period = period
 	group.GenesisTime = genesisTime
-	group.PublicKey = &key.DistPublic{Coefficients: commits}
+	group.PublicKey = &key.DistPublic{Coefficients: commits, Scheme: sch}
 
 	bt := &BeaconTest{
 		prefix:   prefix,
@@ -213,17 +211,17 @@ func (b *BeaconTest) CreateNode(t *testing.T, i int) {
 	}
 
 	if node.handler.addr != node.private.Public.Address() {
-		panic("Oh Oh")
+		panic("createNode address mismatch")
 	}
 
-	currSig, err := scheme.ThresholdScheme.Sign(node.handler.conf.Share.PrivateShare(), []byte("hello"))
+	currSig, err := b.scheme.ThresholdScheme.Sign(node.handler.conf.Share.PrivateShare(), []byte("hello"))
 	checkErr(err)
-	sigIndex, _ := scheme.ThresholdScheme.IndexOf(currSig)
+	sigIndex, _ := b.scheme.ThresholdScheme.IndexOf(currSig)
 	if sigIndex != idx {
 		panic("invalid index")
 	}
 	b.nodes[idx] = node
-	t.Logf("NODE index %d --> Listens on %s || Clock pointer %p\n", idx, priv.Public.Address(), b.nodes[idx].handler.conf.Clock)
+	t.Logf("Created NODE index %d --> Listens on %s || Clock pointer %p\n", idx, priv.Public.Address(), b.nodes[idx].handler.conf.Clock)
 	for i, n := range b.nodes {
 		for j, n2 := range b.nodes {
 			if i == j {
@@ -234,6 +232,11 @@ func (b *BeaconTest) CreateNode(t *testing.T, i int) {
 			}
 		}
 	}
+	t.Cleanup(func() {
+		t.Log("Stopping node:", idx)
+		b.StopBeacon(idx)
+		t.Log("Node stopped:", idx)
+	})
 }
 
 func (b *BeaconTest) ServeBeacon(t *testing.T, i int) {
@@ -334,17 +337,6 @@ func (b *BeaconTest) StopBeacon(i int) {
 	delete(b.nodes, j)
 }
 
-func (b *BeaconTest) StopAll() {
-	for _, n := range b.nodes {
-		b.StopBeacon(n.index)
-	}
-}
-
-func (b *BeaconTest) CleanUp() {
-	deleteBoltStores(b.prefix)
-	b.StopAll()
-}
-
 func (b *BeaconTest) DisableReception(count int) {
 	for i := 0; i < count; i++ {
 		b.nodes[i].server.disable = true
@@ -374,10 +366,6 @@ func createBoltStores(prefix string, n int) []string {
 	return paths
 }
 
-func deleteBoltStores(prefix string) {
-	os.RemoveAll(prefix)
-}
-
 func checkWait(counter *sync.WaitGroup) {
 	var doneCh = make(chan bool, 1)
 	go func() {
@@ -403,9 +391,8 @@ func TestBeaconSync(t *testing.T) {
 	sch, beaconID := scheme.GetSchemeFromEnv(), test.GetBeaconIDFromEnv()
 
 	bt := NewBeaconTest(t, n, thr, period, genesisTime, sch, beaconID)
-	defer bt.CleanUp()
 
-	verifier := crypto.NewVerifier(sch)
+	verifier := verifier2.NewVerifier(sch)
 
 	var counter = &sync.WaitGroup{}
 	myCallBack := func(i int) func(*chain.Beacon) {
@@ -443,9 +430,9 @@ func TestBeaconSync(t *testing.T) {
 
 	// do some rounds
 	for i := 0; i < 2; i++ {
-		t.Logf("round %d starting", i)
+		t.Logf("round %d starting", i+2)
 		doRound(n, period)
-		t.Logf("round %d done", i)
+		t.Logf("round %d done", i+2)
 	}
 
 	t.Log("disable reception")
@@ -482,9 +469,8 @@ func TestBeaconSimple(t *testing.T) {
 	sch, beaconID := scheme.GetSchemeFromEnv(), test.GetBeaconIDFromEnv()
 
 	bt := NewBeaconTest(t, n, thr, period, genesisTime, sch, beaconID)
-	defer bt.CleanUp()
 
-	verifier := crypto.NewVerifier(sch)
+	verifier := verifier2.NewVerifier(sch)
 
 	var counter = &sync.WaitGroup{}
 	counter.Add(n)
@@ -543,15 +529,14 @@ func TestBeaconThreshold(t *testing.T) {
 	sch, beaconID := scheme.GetSchemeFromEnv(), test.GetBeaconIDFromEnv()
 
 	bt := NewBeaconTest(t, n, thr, period, genesisTime, sch, beaconID)
-	defer func() { go bt.CleanUp() }()
 
-	verifier := crypto.NewVerifier(sch)
+	verifier := verifier2.NewVerifier(sch)
 
 	currentRound := uint64(0)
-	var counter = &sync.WaitGroup{}
+	var counter sync.WaitGroup
 	myCallBack := func(i int) func(*chain.Beacon) {
 		return func(b *chain.Beacon) {
-			fmt.Printf(" - test: callback called for node %d - round %d\n", i, b.Round)
+			t.Logf(" - test: callback called for node %d - round %d\n", i, b.Round)
 			// verify partial sig
 
 			err := verifier.VerifyBeacon(*b, bt.dpublic)
@@ -571,7 +556,7 @@ func TestBeaconThreshold(t *testing.T) {
 				currentRound++
 				counter.Add(howMany)
 				bt.MoveTime(t, period)
-				checkWait(counter)
+				checkWait(&counter)
 				time.Sleep(100 * time.Millisecond)
 			}
 		}()
@@ -590,7 +575,7 @@ func TestBeaconThreshold(t *testing.T) {
 	currentRound = 1
 	counter.Add(n - 1)
 	bt.MoveTime(t, offsetGenesis)
-	checkWait(counter)
+	checkWait(&counter)
 
 	// make a few rounds
 	makeRounds(nRounds, n-1)
@@ -615,8 +600,8 @@ func TestBeaconThreshold(t *testing.T) {
 }
 
 func TestProcessingPartialBeaconWithNonExistentIndexDoesntSegfault(t *testing.T) {
-	bls, _ := scheme.GetSchemeByID(scheme.DefaultSchemeID)
-	bt := NewBeaconTest(t, 3, 2, 30*time.Second, 0, bls, "default")
+	sch := crypto.SchemeFromName(scheme.DefaultSchemeID)
+	bt := NewBeaconTest(t, 3, 2, 30*time.Second, 0, *sch, "default")
 
 	packet := drand.PartialBeaconPacket{
 		Round:       1,

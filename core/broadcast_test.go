@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 
 	"github.com/drand/drand/common"
 	"github.com/drand/drand/common/scheme"
-	"github.com/drand/drand/key"
 	"github.com/drand/drand/protobuf/drand"
 	"github.com/drand/drand/test"
 	"github.com/drand/kyber"
@@ -67,9 +65,8 @@ func TestBroadcastSet(t *testing.T) {
 func TestBroadcast(t *testing.T) {
 	n := 5
 	sch, beaconID := scheme.GetSchemeFromEnv(), test.GetBeaconIDFromEnv()
-	_, drands, group, dir, _ := BatchNewDrand(t, n, true, sch, beaconID)
-	defer os.RemoveAll(dir)
-	defer CloseAllDrands(drands)
+	//nolint:dogsled
+	_, drands, group, _, _ := BatchNewDrand(t, n, true, sch, beaconID)
 
 	// channel that will receive all broadcasted packets
 	incPackets := make(chan *packInfo)
@@ -83,7 +80,7 @@ func TestBroadcast(t *testing.T) {
 		id := d.priv.Public.Address()
 		version := common.GetAppVersion()
 		b := newEchoBroadcast(d.log, version, beaconID, d.privGateway.ProtocolClient,
-			id, group.Nodes, func(dkg.Packet) error { return nil })
+			id, group.Nodes, func(dkg.Packet) error { return nil }, sch)
 
 		d.dkgInfo = &dkgInfo{
 			board:   withCallback(id, b, callback),
@@ -99,7 +96,7 @@ func TestBroadcast(t *testing.T) {
 		for i := 0; i < exp; i++ {
 			select {
 			case info := <-incPackets:
-				t.Logf("received packet from %s, %d out of %d", info.id, i, exp)
+				t.Logf("received packet from %s, %d out of %d", info.id, i+1, exp)
 				received[info.id] = true
 			case <-time.After(5 * time.Second):
 				require.True(t, false, "test failed to continue")
@@ -182,9 +179,10 @@ func drain(t *testing.T, ch chan dkg.DealBundle) int {
 }
 
 func fakeDeal() *dkg.DealBundle {
+	sch := scheme.GetSchemeFromEnv()
 	return &dkg.DealBundle{
 		DealerIndex: 0,
-		Public:      []kyber.Point{key.KeyGroup.Point().Pick(random.New())},
+		Public:      []kyber.Point{sch.KeyGroup.Point().Pick(random.New())},
 		Deals: []dkg.Deal{{
 			ShareIndex:     1,
 			EncryptedShare: []byte("HelloWorld"),

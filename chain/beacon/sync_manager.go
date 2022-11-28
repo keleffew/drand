@@ -44,7 +44,6 @@ type SyncManager struct {
 	// updated with each new beacon we receive from sync
 	newSync chan *chain.Beacon
 	done    chan bool
-	isDone  bool
 	mu      sync.Mutex
 	// we need to know our current daemon address
 	nodeAddr string
@@ -93,7 +92,6 @@ func NewSyncManager(c *SyncConfig) *SyncManager {
 		factor:        syncExpiryFactor,
 		newReq:        make(chan requestInfo, syncQueueRequest),
 		newSync:       make(chan *chain.Beacon, 1),
-		isDone:        false,
 		done:          make(chan bool, 1),
 	}
 }
@@ -101,10 +99,6 @@ func NewSyncManager(c *SyncConfig) *SyncManager {
 func (s *SyncManager) Stop() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.isDone {
-		return
-	}
-	s.isDone = true
 	close(s.done)
 }
 
@@ -134,7 +128,8 @@ func (s *SyncManager) Run() {
 	// tracks the time of the last round we successfully synced
 	lastRoundTime := 0
 	// the context being used by the current sync process
-	lastCtx, cancel := context.WithCancel(context.Background()) //nolint
+	var lastCtx context.Context
+	_, cancel := context.WithCancel(context.Background())
 	for {
 		select {
 		case request := <-s.newReq:
@@ -161,7 +156,8 @@ func (s *SyncManager) Run() {
 				// -> time to start a new sync
 				cancel()
 				lastCtx, cancel = context.WithCancel(context.Background())
-				go s.Sync(lastCtx, request) //nolint
+				//nolint
+				go s.Sync(lastCtx, request)
 			}
 
 		case <-s.newSync:

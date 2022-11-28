@@ -4,6 +4,7 @@ package test
 
 import (
 	"encoding/hex"
+	"github.com/drand/drand/crypto"
 	n "net"
 	"os"
 	"strconv"
@@ -75,7 +76,6 @@ func FreeBind(a string) string {
 		if err != nil {
 			panic(err)
 		}
-		defer l.Close()
 		p := strconv.Itoa(l.Addr().(*n.TCPAddr).Port)
 		var found bool
 		for _, u := range allPorts {
@@ -86,8 +86,10 @@ func FreeBind(a string) string {
 		}
 		if !found {
 			allPorts = append(allPorts, p)
+			_ = l.Close()
 			return l.Addr().String()
 		}
+		_ = l.Close()
 	}
 }
 
@@ -128,10 +130,11 @@ func GenerateIDs(n int) []*key.Pair {
 func BatchIdentities(n int, sch crypto.Scheme, beaconID string) ([]*key.Pair, *key.Group) {
 	beaconID = commonutils.GetCanonicalBeaconID(beaconID)
 	privs := GenerateIDs(n)
+
 	thr := key.MinimumT(n)
 	var dpub []kyber.Point
 	for i := 0; i < thr; i++ {
-		dpub = append(dpub, key.KeyGroup.Point().Pick(random.New()))
+		dpub = append(dpub, sch.KeyGroup.Point().Pick(random.New()))
 	}
 
 	dp := &key.DistPublic{Coefficients: dpub}
@@ -151,8 +154,7 @@ func BatchTLSIdentities(n int, sch crypto.Scheme, beaconID string) ([]*key.Pair,
 
 // ListFromPrivates returns a list of Identity from a list of Pair keys.
 func ListFromPrivates(keys []*key.Pair) []*key.Node {
-	n := len(keys)
-	list := make([]*key.Node, n, n)
+	list := make([]*key.Node, len(keys))
 	for i := range keys {
 		list[i] = &key.Node{
 			Index:    uint32(i),

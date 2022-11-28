@@ -13,6 +13,7 @@ import (
 
 	"github.com/drand/drand/client/grpc"
 	"github.com/drand/drand/core"
+	"github.com/drand/drand/crypto"
 	"github.com/drand/drand/fs"
 	"github.com/drand/drand/key"
 	"github.com/drand/drand/log"
@@ -21,20 +22,13 @@ import (
 	"github.com/drand/drand/test"
 )
 
+// LocalNode ...
 type LocalNode struct {
 	base       string
 	i          int
 	period     string
 	beaconID   string
 	scheme     crypto.Scheme
-	publicPath string
-	certPath   string
-
-	// certificate key
-	keyPath string
-
-	// where all public certs are stored
-	certFolder string
 	logPath    string
 	privAddr   string
 	pubAddr    string
@@ -192,7 +186,7 @@ func (l *LocalNode) RunDKG(nodes, thr int, timeout string, leader bool, leaderAd
 	var grp *drand.GroupPacket
 	var err error
 	if leader {
-		grp, err = cl.InitDKGLeader(nodes, thr, p, 0, t, nil, secretDKG, beaconOffset, l.scheme.ID, l.beaconID)
+		grp, err = cl.InitDKGLeader(nodes, thr, p, 0, t, nil, secretDKG, beaconOffset, l.scheme.Name, l.beaconID)
 	} else {
 		leader := net.CreatePeer(leaderAddr, l.tls)
 		grp, err = cl.InitDKG(leader, nil, secretDKG, l.beaconID)
@@ -320,6 +314,6 @@ func (l *LocalNode) PrintLog() {
 		fmt.Printf("[-] Can't read logs at %s !\n\n", l.logPath)
 		return
 	}
-	os.Stdout.Write([]byte(buff))
-	fmt.Println()
+
+	fmt.Printf("%s\n", string(buff))
 }

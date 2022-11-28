@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/drand/drand/crypto"
 	"math/rand"
 	"sync"
 
@@ -59,6 +60,7 @@ type echoBroadcast struct {
 	respCh chan dkg.ResponseBundle
 	justCh chan dkg.JustificationBundle
 	verif  verifyPacket
+	scheme crypto.Scheme
 }
 
 type packet = dkg.Packet
@@ -70,7 +72,7 @@ var _ Broadcast = (*echoBroadcast)(nil)
 type verifyPacket func(packet) error
 
 func newEchoBroadcast(l log.Logger, version commonutils.Version, beaconID string,
-	c net.ProtocolClient, own string, to []*key.Node, v verifyPacket) *echoBroadcast {
+	c net.ProtocolClient, own string, to []*key.Node, v verifyPacket, s crypto.Scheme) *echoBroadcast {
 	return &echoBroadcast{
 		l:          l.Named("echoBroadcast"),
 		version:    version,
@@ -81,6 +83,7 @@ func newEchoBroadcast(l log.Logger, version commonutils.Version, beaconID string
 		justCh:     make(chan dkg.JustificationBundle, len(to)),
 		hashes:     new(arraySet),
 		verif:      v,
+		scheme:     s,
 	}
 }
 
@@ -116,7 +119,7 @@ func (b *echoBroadcast) BroadcastDKG(c context.Context, p *drand.DKGPacket) erro
 	defer b.Unlock()
 
 	addr := net.RemoteAddress(c)
-	dkgPacket, err := protoToDKGPacket(p.GetDkg())
+	dkgPacket, err := protoToDKGPacket(p.GetDkg(), b.scheme)
 	if err != nil {
 		b.l.Errorw("received invalid packet DKGPacket", "from", addr, "err", err)
 		return errors.New("invalid DKGPacket")
@@ -241,7 +244,8 @@ func senderQueueSize(nodes int) int {
 	if nodes > maxQueueSize {
 		return maxQueueSize
 	}
-	return nodes
+	// we have 3 steps
+	return nodes * 3 //nolint:gomnd
 }
 
 // dispatcher maintains a list of worker assigned one destination and pushes the

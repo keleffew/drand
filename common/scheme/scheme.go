@@ -80,7 +80,7 @@ func GetSchemeFromEnv() crypto.Scheme {
 
 	ret := crypto.SchemeFromName(sch.ID)
 	if ret == nil {
-		panic("Invalid scheme for crypto ")
+		panic("Invalid scheme for crypto")
 	}
 
 	return *ret

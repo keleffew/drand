@@ -38,8 +38,8 @@ func TestGroupProtobuf(t *testing.T) {
 	ids := newIds(n)
 	sch := scheme.GetSchemeFromEnv()
 
-	dpub := []kyber.Point{KeyGroup.Point().Pick(random.New())}
-	group := LoadGroup(ids, 1, &DistPublic{dpub}, 30*time.Second, 61, sch, "test_beacon")
+	dpub := []kyber.Point{sch.KeyGroup.Point().Pick(random.New())}
+	group := LoadGroup(ids, 1, &DistPublic{dpub, sch}, 30*time.Second, 61, sch, "test_beacon")
 	group.Threshold = thr
 	group.Period = time.Second * 4
 	group.GenesisTime = time.Now().Add(10 * time.Second).Unix()
@@ -55,10 +55,10 @@ func TestGroupProtobuf(t *testing.T) {
 
 	var dpub2 []kyber.Point
 	for i := 0; i < thr; i++ {
-		dpub2 = append(dpub2, KeyGroup.Point().Pick(random.New()))
+		dpub2 = append(dpub2, sch.KeyGroup.Point().Pick(random.New()))
 	}
 	group2 := *group
-	group2.PublicKey = &DistPublic{dpub2}
+	group2.PublicKey = &DistPublic{dpub2, sch}
 	vectors = append(vectors, testVector{
 		group:  &group2,
 		change: nil,
@@ -88,11 +88,14 @@ func TestGroupProtobuf(t *testing.T) {
 			require.Error(t, err)
 			continue
 		}
+
+		require.NoError(t, err)
+
 		// load the seed after
 		seed := tv.group.GetGenesisSeed()
 		require.Equal(t, len(loaded.Nodes), len(tv.group.Nodes), "test %d", i)
 		require.Equal(t, loaded.Threshold, tv.group.Threshold)
-		require.True(t, loaded.PublicKey.Equal(tv.group.PublicKey), "test %d: %v vs %v", i, loaded.PublicKey, group.PublicKey)
+		require.True(t, loaded.PublicKey.Equal(tv.group.PublicKey), "test %d: %v \nvs %v", i, loaded.PublicKey, group.PublicKey)
 		require.Equal(t, loaded.Period, tv.group.Period)
 		require.Equal(t, seed, loaded.GetGenesisSeed())
 		require.Equal(t, genesis, loaded.GenesisTime)
@@ -105,7 +108,7 @@ func TestGroupUnsignedIdentities(t *testing.T) {
 	ids := newIds(5)
 	sch := scheme.GetSchemeFromEnv()
 
-	group := LoadGroup(ids, 1, &DistPublic{[]kyber.Point{KeyGroup.Point()}}, 30*time.Second, 61, sch, "test_beacon")
+	group := LoadGroup(ids, 1, &DistPublic{[]kyber.Point{sch.KeyGroup.Point()}, sch}, 30*time.Second, 61, sch, "test_beacon")
 	require.Nil(t, group.UnsignedIdentities())
 
 	ids[0].Signature = nil
@@ -117,10 +120,11 @@ func TestGroupUnsignedIdentities(t *testing.T) {
 func TestGroupSaveLoad(t *testing.T) {
 	n := 3
 	ids := newIds(n)
-	dpub := []kyber.Point{KeyGroup.Point().Pick(random.New())}
 	sch := scheme.GetSchemeFromEnv()
 
-	group := LoadGroup(ids, 1, &DistPublic{dpub}, 30*time.Second, 61, sch, "test_beacon")
+	dpub := []kyber.Point{sch.KeyGroup.Point().Pick(random.New())}
+
+	group := LoadGroup(ids, 1, &DistPublic{dpub, sch}, 30*time.Second, 61, sch, "test_beacon")
 	group.Threshold = 3
 	group.Period = time.Second * 4
 	group.GenesisTime = time.Now().Add(10 * time.Second).Unix()
@@ -133,11 +137,10 @@ func TestGroupSaveLoad(t *testing.T) {
 	require.NotNil(t, gtoml.PublicKey)
 
 	// faking distributed public key coefficients
-	groupFile, err := os.CreateTemp("", "group.toml")
+	groupFile, err := os.CreateTemp(t.TempDir(), "group.toml")
 	require.NoError(t, err)
 	groupPath := groupFile.Name()
 	groupFile.Close()
-	defer os.RemoveAll(groupPath)
 
 	require.NoError(t, Save(groupPath, group, false))
 	// load the seed after
@@ -160,11 +163,10 @@ func TestGroupSaveLoad(t *testing.T) {
 // BatchIdentities generates n insecure identities
 func makeGroup(t *testing.T) *Group {
 	t.Helper()
-
-	fakeKey := KeyGroup.Point().Pick(random.New())
 	sch := scheme.GetSchemeFromEnv()
 
-	group := LoadGroup([]*Node{}, 1, &DistPublic{Coefficients: []kyber.Point{fakeKey}}, 30*time.Second, 0, sch, "test_beacon")
+	fakeKey := sch.KeyGroup.Point().Pick(random.New())
+	group := LoadGroup([]*Node{}, 1, &DistPublic{Coefficients: []kyber.Point{fakeKey}, Scheme: sch}, 30*time.Second, 0, sch, "test_beacon")
 	group.Threshold = MinimumT(0)
 	return group
 }

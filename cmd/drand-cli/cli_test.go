@@ -5,7 +5,8 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"github.com/drand/drand/crypto"
+	"github.com/drand/kyber/share/dkg"
 	gnet "net"
 	"os"
 	"os/exec"
@@ -37,8 +38,7 @@ import (
 const expectedShareOutput = "0000000000000000000000000000000000000000000000000000000000000001"
 
 func TestMigrate(t *testing.T) {
-	tmp := getSBFolderStructure()
-	defer os.RemoveAll(tmp)
+	tmp := getSBFolderStructure(t)
 
 	args := []string{"drand", "util", "migrate", "--folder", tmp}
 	app := CLI()
@@ -65,8 +65,7 @@ func TestMigrate(t *testing.T) {
 func TestResetError(t *testing.T) {
 	beaconID := test.GetBeaconIDFromEnv()
 
-	tmp := getSBFolderStructure()
-	defer os.RemoveAll(tmp)
+	tmp := getSBFolderStructure(t)
 
 	args := []string{"drand", "util", "reset", "--folder", tmp, "--id", beaconID}
 	app := CLI()
@@ -76,8 +75,7 @@ func TestResetError(t *testing.T) {
 func TestDeleteBeaconError(t *testing.T) {
 	beaconID := test.GetBeaconIDFromEnv()
 
-	tmp := getSBFolderStructure()
-	defer os.RemoveAll(tmp)
+	tmp := getSBFolderStructure(t)
 
 	// that command should delete round 3 and 4
 	args := []string{"drand", "util", "del-beacon", "--folder", tmp, "--id", beaconID, "3"}
@@ -88,8 +86,7 @@ func TestDeleteBeaconError(t *testing.T) {
 func TestDeleteBeacon(t *testing.T) {
 	beaconID := test.GetBeaconIDFromEnv()
 
-	tmp := path.Join(os.TempDir(), "drand")
-	defer os.RemoveAll(tmp)
+	tmp := path.Join(t.TempDir(), "drand")
 
 	opt := core.WithConfigFolder(tmp)
 	conf := core.NewConfig(opt)
@@ -142,8 +139,7 @@ func TestDeleteBeacon(t *testing.T) {
 func TestKeySelfSignError(t *testing.T) {
 	beaconID := test.GetBeaconIDFromEnv()
 
-	tmp := getSBFolderStructure()
-	defer os.RemoveAll(tmp)
+	tmp := getSBFolderStructure(t)
 
 	args := []string{"drand", "util", "self-sign", "--folder", tmp, "--id", beaconID}
 	app := CLI()
@@ -153,8 +149,7 @@ func TestKeySelfSignError(t *testing.T) {
 func TestKeySelfSign(t *testing.T) {
 	beaconID := test.GetBeaconIDFromEnv()
 
-	tmp := path.Join(os.TempDir(), "drand")
-	defer os.RemoveAll(tmp)
+	tmp := path.Join(t.TempDir(), "drand")
 
 	args := []string{"drand", "generate-keypair", "--folder", tmp, "--id", beaconID, "127.0.0.1:8081"}
 	require.NoError(t, CLI().Run(args))
@@ -180,8 +175,7 @@ func TestKeySelfSign(t *testing.T) {
 func TestKeyGenError(t *testing.T) {
 	beaconID := test.GetBeaconIDFromEnv()
 
-	tmp := getSBFolderStructure()
-	defer os.RemoveAll(tmp)
+	tmp := getSBFolderStructure(t)
 
 	args := []string{"drand", "generate-keypair", "--folder", tmp, "--id", beaconID, "127.0.0.1:8081"}
 	app := CLI()
@@ -191,8 +185,7 @@ func TestKeyGenError(t *testing.T) {
 func TestKeyGen(t *testing.T) {
 	beaconID := test.GetBeaconIDFromEnv()
 
-	tmp := path.Join(os.TempDir(), "drand")
-	defer os.RemoveAll(tmp)
+	tmp := path.Join(t.TempDir(), "drand")
 
 	args := []string{"drand", "generate-keypair", "--folder", tmp, "--id", beaconID, "127.0.0.1:8081"}
 	require.NoError(t, CLI().Run(args))
@@ -203,8 +196,7 @@ func TestKeyGen(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, priv.Public)
 
-	tmp2 := path.Join(os.TempDir(), "drand2")
-	defer os.RemoveAll(tmp2)
+	tmp2 := path.Join(t.TempDir(), "drand2")
 
 	args = []string{"drand", "generate-keypair", "--folder", tmp2, "--id", beaconID}
 	require.Error(t, CLI().Run(args))
@@ -218,9 +210,7 @@ func TestKeyGen(t *testing.T) {
 
 // tests valid commands and then invalid commands
 func TestStartAndStop(t *testing.T) {
-	tmpPath := path.Join(os.TempDir(), "drand")
-	os.Mkdir(tmpPath, 0o740)
-	defer os.RemoveAll(tmpPath)
+	tmpPath := t.TempDir()
 
 	n := 5
 	sch := scheme.GetSchemeFromEnv()
@@ -259,9 +249,7 @@ func TestStartAndStop(t *testing.T) {
 func TestUtilCheck(t *testing.T) {
 	beaconID := test.GetBeaconIDFromEnv()
 
-	tmp, err := os.MkdirTemp("", "drand-cli-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmp)
+	tmp := t.TempDir()
 
 	// try to generate a keypair and make it listen on another address
 	keyPort := test.FreePort()
@@ -308,13 +296,8 @@ func TestStartWithoutGroup(t *testing.T) {
 	sch := scheme.GetSchemeFromEnv()
 	beaconID := test.GetBeaconIDFromEnv()
 
-	tmpPath := path.Join(os.TempDir(), "drand")
-	os.Mkdir(tmpPath, 0o740)
-	defer func() {
-		if err := os.RemoveAll(tmpPath); err != nil {
-			fmt.Println(err)
-		}
-	}()
+	tmpPath := path.Join(t.TempDir(), "drand")
+	require.NoError(t, os.Mkdir(tmpPath, 0o740))
 
 	pubPath := path.Join(tmpPath, "pub.key")
 	port1, _ := strconv.Atoi(test.FreePort())
@@ -365,13 +348,14 @@ func TestStartWithoutGroup(t *testing.T) {
 	_, group := test.BatchIdentities(5, sch, beaconID)
 
 	// fake dkg outuput
-	fakeKey := key.KeyGroup.Point().Pick(random.New())
+	fakeKey := sch.KeyGroup.Point().Pick(random.New())
 	distKey := &key.DistPublic{
 		Coefficients: []kyber.Point{
 			fakeKey,
-			key.KeyGroup.Point().Pick(random.New()),
-			key.KeyGroup.Point().Pick(random.New()),
+			sch.KeyGroup.Point().Pick(random.New()),
+			sch.KeyGroup.Point().Pick(random.New()),
 		},
+		Scheme: sch,
 	}
 	priv.Public.TLS = false
 
@@ -387,9 +371,9 @@ func TestStartWithoutGroup(t *testing.T) {
 	require.NoError(t, fileStore.SaveGroup(group))
 
 	// fake share
-	scalarOne := key.KeyGroup.Scalar().One()
+	scalarOne := sch.KeyGroup.Scalar().One()
 	s := &share.PriShare{I: 2, V: scalarOne}
-	fakeShare := &key.Share{Share: s}
+	fakeShare := &key.Share{DistKeyShare: dkg.DistKeyShare{Share: s}, Scheme: sch}
 	require.NoError(t, fileStore.SaveShare(fakeShare))
 
 	fmt.Println(" --- DRAND START --- control ", ctrlPort2)
@@ -402,7 +386,6 @@ func TestStartWithoutGroup(t *testing.T) {
 		"--tls-disable",
 		"--folder", tmpPath,
 		"--verbose",
-		"--private-rand",
 	}
 
 	go func() {
@@ -425,15 +408,6 @@ func testStartedDrandFunctional(t *testing.T, ctrlPort, rootPath, address string
 	testListSchemes(t, ctrlPort)
 
 	require.NoError(t, toml.NewEncoder(os.Stdout).Encode(group))
-
-	groupPath := path.Join(rootPath, "drand_group.toml")
-	fmt.Printf("\n Running GET PRIVATE command with group file at %s\n", groupPath)
-	loadedGroup := new(key.Group)
-	require.NoError(t, key.Load(groupPath, loadedGroup))
-	fmt.Printf("%s", loadedGroup.String())
-
-	getCmd := []string{"drand", "get", "private", "--tls-disable", groupPath}
-	require.NoError(t, CLI().Run(getCmd))
 
 	fmt.Printf("\n Running CHAIN-INFO command\n")
 	chainInfo, err := json.MarshalIndent(chain.NewChainInfo(group).ToProto(nil), "", "    ")
@@ -523,9 +497,8 @@ func TestClientTLS(t *testing.T) {
 	sch := scheme.GetSchemeFromEnv()
 	beaconID := test.GetBeaconIDFromEnv()
 
-	tmpPath := path.Join(os.TempDir(), "drand")
+	tmpPath := path.Join(t.TempDir(), "drand")
 	os.Mkdir(tmpPath, 0o740)
-	defer os.RemoveAll(tmpPath)
 
 	groupPath := path.Join(tmpPath, "group.toml")
 	certPath := path.Join(tmpPath, "server.pem")
@@ -555,14 +528,15 @@ func TestClientTLS(t *testing.T) {
 	// fake group
 	_, group := test.BatchTLSIdentities(5, sch, beaconID)
 	// fake dkg outuput
-	fakeKey := key.KeyGroup.Point().Pick(random.New())
+	fakeKey := sch.KeyGroup.Point().Pick(random.New())
 	// need a threshold of coefficients
 	distKey := &key.DistPublic{
 		Coefficients: []kyber.Point{
 			fakeKey,
-			key.KeyGroup.Point().Pick(random.New()),
-			key.KeyGroup.Point().Pick(random.New()),
+			sch.KeyGroup.Point().Pick(random.New()),
+			sch.KeyGroup.Point().Pick(random.New()),
 		},
+		Scheme: sch,
 	}
 	group.Nodes[0] = &key.Node{Identity: priv.Public, Index: 0}
 	group.Period = 2 * time.Minute
@@ -572,9 +546,9 @@ func TestClientTLS(t *testing.T) {
 	require.NoError(t, key.Save(groupPath, group, false))
 
 	// fake share
-	scalarOne := key.KeyGroup.Scalar().One()
+	scalarOne := sch.KeyGroup.Scalar().One()
 	s := &share.PriShare{I: 2, V: scalarOne}
-	fakeShare := &key.Share{Share: s}
+	fakeShare := &key.Share{DistKeyShare: dkg.DistKeyShare{Share: s}, Scheme: sch}
 	fileStore.SaveShare(fakeShare)
 
 	startArgs := []string{
@@ -586,26 +560,16 @@ func TestClientTLS(t *testing.T) {
 		"--control", ctrlPort,
 		"--folder", tmpPath,
 		"--metrics", metricsPort,
-		"--private-rand",
 	}
 	go CLI().Run(startArgs)
 	defer CLI().Run([]string{"drand", "stop", "--control", ctrlPort})
 	time.Sleep(500 * time.Millisecond)
 
-	testStartedTLSDrandFunctional(t, ctrlPort, certPath, groupPath, group, priv)
+	testStartedTLSDrandFunctional(t, ctrlPort, certPath, group, priv)
 }
 
-func testStartedTLSDrandFunctional(t *testing.T, ctrlPort, certPath, groupPath string, group *key.Group, priv *key.Pair) {
+func testStartedTLSDrandFunctional(t *testing.T, ctrlPort, certPath string, group *key.Group, priv *key.Pair) {
 	var err error
-	for i := 0; i < 3; i++ {
-		getPrivate := []string{"drand", "get", "private", "--tls-cert", certPath, groupPath}
-		err = CLI().Run(getPrivate)
-		if err == nil {
-			break
-		}
-		time.Sleep(500 * time.Millisecond)
-	}
-	require.Nil(t, err)
 
 	chainInfoCmd := []string{"drand", "get", "chain-info", "--tls-cert", certPath, priv.Public.Address()}
 	chainInfoBuff, err := json.MarshalIndent(chain.NewChainInfo(group).ToProto(nil), "", "    ")
@@ -620,11 +584,6 @@ func testStartedTLSDrandFunctional(t *testing.T, ctrlPort, certPath, groupPath s
 	b, _ := priv.Public.Key.MarshalBinary()
 	exp := hex.EncodeToString(b)
 	testCommand(t, showPublic, exp)
-
-	showPrivate := []string{"drand", "show", "private", "--control", ctrlPort}
-	b, _ = priv.Key.MarshalBinary()
-	exp = hex.EncodeToString(b)
-	testCommand(t, showPrivate, exp)
 
 	showCokey := []string{"drand", "show", "chain-info", "--control", ctrlPort}
 	expectedOutput = string(chainInfoBuff)
@@ -654,9 +613,9 @@ func testCommand(t *testing.T, args []string, exp string) {
 	require.True(t, strings.Contains(strings.Trim(buff.String(), "\n"), exp))
 }
 
-// getSBFolderStructure create a new single-beacon folder structure on a temporal folder
-func getSBFolderStructure() string {
-	tmp := path.Join(os.TempDir(), "drand")
+// getSBFolderStructure create a new single-beacon folder structure in a temporary folder
+func getSBFolderStructure(t *testing.T) string {
+	tmp := path.Join(t.TempDir(), "drand")
 
 	fs.CreateSecureFolder(path.Join(tmp, key.GroupFolderName))
 	fs.CreateSecureFolder(path.Join(tmp, key.KeyFolderName))
@@ -667,8 +626,7 @@ func getSBFolderStructure() string {
 
 func TestDrandListSchemes(t *testing.T) {
 	n := 5
-	instances, tempPath := launchDrandInstances(t, n)
-	defer os.RemoveAll(tempPath)
+	instances := launchDrandInstances(t, n)
 
 	for _, instance := range instances {
 		remote := []string{"drand", "util", "list-schemes", "--control", instance.ctrlPort}
@@ -683,8 +641,7 @@ func TestDrandReloadBeacon(t *testing.T) {
 	beaconID := test.GetBeaconIDFromEnv()
 
 	n := 4
-	instances, tempPath := launchDrandInstances(t, n)
-	defer os.RemoveAll(tempPath)
+	instances := launchDrandInstances(t, n)
 
 	for i, inst := range instances {
 		if i == 0 {
@@ -732,8 +689,7 @@ func TestDrandReloadBeacon(t *testing.T) {
 
 func TestDrandStatus(t *testing.T) {
 	n := 4
-	instances, tempPath := launchDrandInstances(t, n)
-	defer os.RemoveAll(tempPath)
+	instances := launchDrandInstances(t, n)
 	allAddresses := make([]string, 0, n)
 	for _, instance := range instances {
 		allAddresses = append(allAddresses, instance.addr)
@@ -789,9 +745,7 @@ func TestDrandStatus(t *testing.T) {
 func TestEmptyPortSelectionUsesDefaultDuringKeygen(t *testing.T) {
 	beaconID := test.GetBeaconIDFromEnv()
 
-	tmp, err := os.MkdirTemp("", "drand-cli-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmp)
+	tmp := t.TempDir()
 	app := CLI()
 
 	// args are missing a port for the node address
@@ -805,9 +759,7 @@ func TestEmptyPortSelectionUsesDefaultDuringKeygen(t *testing.T) {
 func TestValidPortSelectionSucceedsDuringKeygen(t *testing.T) {
 	beaconID := test.GetBeaconIDFromEnv()
 
-	tmp, err := os.MkdirTemp("", "drand-cli-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmp)
+	tmp := t.TempDir()
 	app := CLI()
 
 	args := []string{"drand", "generate-keypair", "--folder", tmp, "--id", beaconID, "127.0.0.1"}
@@ -843,7 +795,7 @@ func (d *drandInstance) shareLeader(t *testing.T, nodes, threshold, period int, 
 		"--threshold", strconv.Itoa(threshold),
 		"--period", fmt.Sprintf("%ds", period),
 		"--control", d.ctrlPort,
-		"--scheme", sch.ID,
+		"--scheme", sch.Name,
 		"--id", beaconID,
 	}
 
@@ -901,18 +853,17 @@ func (d *drandInstance) run(t *testing.T, beaconID string) {
 	testStatus(t, d.ctrlPort, beaconID)
 }
 
-//nolint:gocritic
-func launchDrandInstances(t *testing.T, n int) ([]*drandInstance, string) {
+func launchDrandInstances(t *testing.T, n int) []*drandInstance {
 	beaconID := test.GetBeaconIDFromEnv()
 
-	tmpPath := path.Join(os.TempDir(), "drand")
-	os.Mkdir(tmpPath, 0o740)
-	certsDir, err := ioutil.TempDir(tmpPath, "certs")
-	require.NoError(t, err)
+	tmpPath := t.TempDir()
+
+	certsDir := path.Join(tmpPath, "certs")
+	require.NoError(t, os.Mkdir(certsDir, 0o740))
 
 	ins := make([]*drandInstance, 0, n)
 	for i := 1; i <= n; i++ {
-		nodePath, err := ioutil.TempDir(tmpPath, "node")
+		nodePath, err := os.MkdirTemp(tmpPath, "node")
 		require.NoError(t, err)
 
 		certPath := path.Join(nodePath, "cert")
@@ -930,12 +881,15 @@ func launchDrandInstances(t *testing.T, n int) ([]*drandInstance, string) {
 		require.NoError(t, key.Save(pubPath, priv.Public, false))
 		config := core.NewConfig(core.WithConfigFolder(nodePath))
 		fileStore := key.NewFileStore(config.ConfigFolderMB(), beaconID)
-		fileStore.SaveKeyPair(priv)
+		err = fileStore.SaveKeyPair(priv)
+		require.NoError(t, err)
 
-		h, _, _ := gnet.SplitHostPort(addr)
-		if err := httpscerts.Generate(certPath, keyPath, h); err != nil {
-			panic(err)
-		}
+		h, _, err := gnet.SplitHostPort(addr)
+		require.NoError(t, err)
+
+		err = httpscerts.Generate(certPath, keyPath, h)
+		require.NoError(t, err)
+
 		// copy into one folder for giving a common CERT folder
 		_, err = exec.Command("cp", certPath, path.Join(certsDir, fmt.Sprintf("cert-%d", i))).Output()
 		require.NoError(t, err)
@@ -955,14 +909,11 @@ func launchDrandInstances(t *testing.T, n int) ([]*drandInstance, string) {
 	for _, instance := range ins {
 		instance.run(t, beaconID)
 	}
-	return ins, tmpPath
+	return ins
 }
 
 func TestSharingWithInvalidFlagCombos(t *testing.T) {
 	beaconID := test.GetBeaconIDFromEnv()
-	tmp, err := os.MkdirTemp("", "drand-cli-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmp)
 
 	// leader and connect flags can't be used together
 	share1 := []string{

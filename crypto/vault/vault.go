@@ -34,10 +34,11 @@ type Vault struct {
 
 func NewVault(currentGroup *key.Group, ks *key.Share) *Vault {
 	return &Vault{
-		chain: chain.NewChainInfo(currentGroup),
-		share: ks,
-		pub:   currentGroup.PublicKey.PubPoly(),
-		group: currentGroup,
+		Scheme: currentGroup.Scheme,
+		chain:  chain.NewChainInfo(currentGroup),
+		share:  ks,
+		pub:    currentGroup.PublicKey.PubPoly(),
+		group:  currentGroup,
 	}
 }
 
@@ -69,6 +70,8 @@ func (c *Vault) SignPartial(msg []byte) ([]byte, error) {
 
 // Index returns the index of the share
 func (c *Vault) Index() int {
+	c.Lock()
+	defer c.Unlock()
 	return c.share.Share.I
 }
 

@@ -86,7 +86,7 @@ func makeClient(cfg *clientConfig) (Client, error) {
 	for _, source := range cfg.clients {
 		sch := crypto.SchemeFromName(cfg.chainInfo.Scheme)
 		if sch == nil {
-			return nil, fmt.Errorf("invalid scheme name provided")
+			return nil, fmt.Errorf("invalid scheme name in makeClient")
 		}
 		opts := Opts{scheme: *sch, strict: cfg.fullVerify}
 

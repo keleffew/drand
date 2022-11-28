@@ -3,6 +3,7 @@ package lib
 import (
 	"bytes"
 	"fmt"
+	"github.com/drand/drand/crypto"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -53,7 +54,6 @@ type Orchestrator struct {
 	newGroup          *key.Group
 	resharePaths      []string
 	reshareIndex      []int
-	reshareThr        int
 	reshareNodes      []node.Node
 	tls               bool
 	withCurl          bool
@@ -63,14 +63,15 @@ type Orchestrator struct {
 
 func NewOrchestrator(n int, thr int, period string, tls bool, binary string, withCurl bool, sch crypto.Scheme, beaconID string, isCandidate bool) *Orchestrator {
 	basePath := path.Join(os.TempDir(), "drand-full")
+	// cleanup the basePath before doing anything
 	os.RemoveAll(basePath)
 
 	fmt.Printf("[+] Simulation global folder: %s\n", basePath)
-	checkErr(os.MkdirAll(basePath, 0740))
+	checkErr(os.MkdirAll(basePath, 0o740))
 	certFolder := path.Join(basePath, "certs")
 	beaconID = common.GetCanonicalBeaconID(beaconID)
 
-	checkErr(os.MkdirAll(certFolder, 0740))
+	checkErr(os.MkdirAll(certFolder, 0o740))
 	nodes, paths := createNodes(n, 1, period, basePath, certFolder, tls, binary, sch, beaconID, isCandidate)
 
 	periodD, err := time.ParseDuration(period)
@@ -151,6 +152,7 @@ func (e *Orchestrator) RunDKG(timeout string) {
 	}()
 	time.Sleep(200 * time.Millisecond)
 	for _, n := range e.nodes[1:] {
+		n := n
 		fmt.Printf("\t- Running DKG for node %s\n", n.PrivateAddr())
 		go func(n node.Node) {
 			defer func() {
@@ -210,7 +212,7 @@ func (e *Orchestrator) checkDKGNodes(nodes []node.Node, groupPath string) *key.G
 			continue
 		}
 		if !g.PublicKey.Equal(group.PublicKey) {
-			panic(fmt.Errorf("- Node %s has different cokey than %s\n", node.PrivateAddr(), lastNode))
+			panic(fmt.Errorf("[-] Node %s has different cokey than %s", node.PrivateAddr(), lastNode))
 		}
 	}
 	return g
@@ -291,26 +293,21 @@ func (e *Orchestrator) checkBeaconNodes(nodes []node.Node, group string, tryCurl
 				lastIndex = node.Index()
 				fmt.Printf("\t - Example command is: \"%s\"\n", cmd)
 				break
-			} else {
-				// we first check both are at the same round
-				if randResp.GetRound() != rand.GetRound() {
-					fmt.Println("[-] Mismatch between last index", lastIndex, " vs current index ", node.Index(), " - trying again in some time...")
-					time.Sleep(100 * time.Millisecond)
-					// we try again
-					continue
-				}
-				// then we check if the signatures match
-				if !bytes.Equal(randResp.GetSignature(), rand.GetSignature()) {
-					panic("[-] Inconsistent beacon signature between nodes")
-				}
-				// everything is good
-				break
 			}
-			// after three times it still doesn't work that means the node is
-			// really behind for some weird reasons
-			fmt.Println(rand.String())
-			fmt.Println(randResp.String())
-			panic("[-] Inconsistent beacon rounds between nodes")
+
+			// we first check both are at the same round
+			if randResp.GetRound() != rand.GetRound() {
+				fmt.Println("[-] Mismatch between last index", lastIndex, " vs current index ", node.Index(), " - trying again in some time...")
+				time.Sleep(100 * time.Millisecond)
+				// we try again
+				continue
+			}
+			// then we check if the signatures match
+			if !bytes.Equal(randResp.GetSignature(), rand.GetSignature()) {
+				panic("[-] Inconsistent beacon signature between nodes")
+			}
+			// everything is good
+			break
 		}
 	}
 	fmt.Println("[+] Checking randomness via HTTP API using curl")
@@ -320,10 +317,11 @@ func (e *Orchestrator) checkBeaconNodes(nodes []node.Node, group string, tryCurl
 		http := "http"
 		if e.tls {
 			tmp, _ := os.CreateTemp("", "cert")
-			defer os.Remove(tmp.Name())
+			tmpName := tmp.Name() // Extract the name into a separate variable and then use it in the defer call
+			defer os.Remove(tmpName)
 			tmp.Close()
-			n.WriteCertificate(tmp.Name())
-			args = append(args, pair("--cacert", tmp.Name())...)
+			n.WriteCertificate(tmpName)
+			args = append(args, pair("--cacert", tmpName)...)
 			http = http + "s"
 		}
 		args = append(args, pair("-H", "Context-type: application/json")...)
@@ -460,6 +458,7 @@ func (e *Orchestrator) RunResharing(timeout string) {
 	time.Sleep(100 * time.Millisecond)
 
 	for _, n := range e.reshareNodes[1:] {
+		n := n
 		path := ""
 		if e.isNew(n) {
 			path = e.groupPath
@@ -568,7 +567,7 @@ func (e *Orchestrator) StartNode(idxs ...int) {
 			time.Sleep(time.Duration(trial*trial) * time.Second)
 		}
 		if !started {
-			panic(fmt.Errorf("[-] Could not start node %s ... \n", foundNode.PrivateAddr()))
+			panic(fmt.Errorf("[-] Could not start node %s", foundNode.PrivateAddr()))
 		}
 	}
 }
@@ -585,6 +584,7 @@ func (e *Orchestrator) PrintLogs() {
 func (e *Orchestrator) Shutdown() {
 	fmt.Println("[+] Shutdown all nodes")
 	for _, no := range e.nodes {
+		no := no
 		fmt.Printf("\t- Stop old node %s\n", no.PrivateAddr())
 		go func(n node.Node) {
 			n.Stop()
@@ -592,6 +592,7 @@ func (e *Orchestrator) Shutdown() {
 		}(no)
 	}
 	for _, no := range e.newNodes {
+		no := no
 		fmt.Printf("\t- Stop new node %s\n", no.PrivateAddr())
 		go func(n node.Node) {
 			n.Stop()

@@ -78,6 +78,7 @@ func TestClientWithChainInfo(t *testing.T) {
 		PublicKey:   id.Public.Key,
 		GenesisTime: 100,
 		Period:      time.Second,
+		Scheme:      scheme.DefaultSchemeID,
 	}
 	hc, _ := http.NewWithInfo("http://nxdomain.local/", chainInfo, nil)
 	c, err := client.New(client.WithChainInfo(chainInfo),
@@ -223,6 +224,9 @@ func TestClientChainHashOverrideError(t *testing.T) {
 		client.WithChainInfo(chainInfo),
 		client.WithChainHash(fakeChainInfo().Hash()),
 	)
+	if err == nil {
+		t.Fatal("expected error, received no error")
+	}
 	if err.Error() != "refusing to override group with non-matching hash" {
 		t.Fatal(err)
 	}
@@ -235,6 +239,9 @@ func TestClientChainInfoOverrideError(t *testing.T) {
 		client.WithChainHash(chainInfo.Hash()),
 		client.WithChainInfo(fakeChainInfo()),
 	)
+	if err == nil {
+		t.Fatal("expected error, received no error")
+	}
 	if err.Error() != "refusing to override hash with non-matching group" {
 		t.Fatal(err)
 	}
@@ -373,9 +380,11 @@ func compareResults(t *testing.T, a, b client.Result) {
 
 // fakeChainInfo creates a chain info object for use in tests.
 func fakeChainInfo() *chain.Info {
+	sch := scheme.GetSchemeFromEnv()
 	return &chain.Info{
 		Period:      time.Second,
 		GenesisTime: time.Now().Unix(),
 		PublicKey:   test.GenerateIDs(1)[0].Public.Key,
+		Scheme:      sch.Name,
 	}
 }

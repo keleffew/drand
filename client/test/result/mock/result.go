@@ -9,8 +9,7 @@ import (
 	"time"
 
 	"github.com/drand/drand/chain"
-	"github.com/drand/drand/common/scheme"
-	"github.com/drand/drand/key"
+	"github.com/drand/drand/crypto"
 	"github.com/drand/kyber/share"
 	"github.com/drand/kyber/sign/tbls"
 	"github.com/drand/kyber/util/random"
@@ -83,8 +82,8 @@ func roundToBytes(r int) []byte {
 
 // VerifiableResults creates a set of results that will pass a `chain.Verify` check.
 func VerifiableResults(count int, sch crypto.Scheme) (*chain.Info, []Result) {
-	secret := key.KeyGroup.Scalar().Pick(random.New())
-	public := key.KeyGroup.Point().Mul(secret, nil)
+	secret := sch.KeyGroup.Scalar().Pick(random.New())
+	public := sch.KeyGroup.Point().Mul(secret, nil)
 	previous := make([]byte, 32)
 	if _, err := rand.Reader.Read(previous); err != nil {
 		panic(err)
@@ -94,14 +93,14 @@ func VerifiableResults(count int, sch crypto.Scheme) (*chain.Info, []Result) {
 	for i := range out {
 
 		var msg []byte
-		if !sch.DecouplePrevSig {
+		if sch.IsPreviousSigSignificant {
 			msg = sha256Hash(append(previous[:], roundToBytes(i+1)...))
 		} else {
 			msg = sha256Hash(roundToBytes(i + 1))
 		}
 
 		sshare := share.PriShare{I: 0, V: secret}
-		tsig, err := scheme.ThresholdScheme.Sign(&sshare, msg)
+		tsig, err := sch.ThresholdScheme.Sign(&sshare, msg)
 		if err != nil {
 			panic(err)
 		}
@@ -122,7 +121,7 @@ func VerifiableResults(count int, sch crypto.Scheme) (*chain.Info, []Result) {
 		Period:      time.Second,
 		GenesisTime: time.Now().Unix() - int64(count),
 		GenesisSeed: out[0].PSig,
-		Scheme:      sch,
+		Scheme:      sch.Name,
 	}
 
 	return &info, out

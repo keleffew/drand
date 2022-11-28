@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/drand/drand/crypto"
 	"io"
 	"strings"
 	"time"
@@ -326,7 +327,7 @@ func (bp *BeaconProcess) leaderRunSetup(newSetup func(d *BeaconProcess) (*setupM
 	defer func() {
 		// don't clear manager if pre-empted
 		if errors.Is(err, errPreempted) {
-			fmt.Println("PREEMPTION ERROR ", err) //nolint
+			bp.log.Errorw("PREEMPTION ERROR", "err", err)
 			return
 		}
 		bp.state.Lock()
@@ -380,7 +381,7 @@ func (bp *BeaconProcess) runDKG(leader bool, group *key.Group, timeout uint32, r
 	board := newEchoBroadcast(bp.log, bp.version, beaconID, bp.privGateway.ProtocolClient,
 		bp.priv.Public.Address(), group.Nodes, func(p dkg.Packet) error {
 			return dkg.VerifyPacketSignature(config, p)
-		})
+		}, bp.priv.Scheme())
 	dkgProto, err := dkg.NewProtocol(config, board, phaser, true)
 	if err != nil {
 		return nil, err
@@ -481,8 +482,7 @@ func (bp *BeaconProcess) runResharing(leader bool, oldGroup, newGroup *key.Group
 			if bp.share == nil {
 				return errors.New("control: can't reshare without a share")
 			}
-			dkgShare := dkg.DistKeyShare(*bp.share)
-			config.Share = &dkgShare
+			config.Share = &dkg.DistKeyShare{Commits: bp.share.Commits, Share: bp.share.Share}
 		} else {
 			// we are a new node, we want to make sure we reshare from the old
 			// group public key
@@ -498,7 +498,7 @@ func (bp *BeaconProcess) runResharing(leader bool, oldGroup, newGroup *key.Group
 	var board Broadcast = newEchoBroadcast(bp.log, bp.version, oldBeaconID, bp.privGateway.ProtocolClient,
 		bp.priv.Public.Address(), allNodes, func(p dkg.Packet) error {
 			return dkg.VerifyPacketSignature(config, p)
-		})
+		}, bp.priv.Scheme())
 
 	if bp.dkgBoardSetup != nil {
 		board = bp.dkgBoardSetup(board)
@@ -734,7 +734,9 @@ func (bp *BeaconProcess) setupAutomaticResharing(_ context.Context, oldGroup *ke
 	bp.state.Lock()
 	// notice that we are updating the index prior to the actual transition
 	oldIdx := bp.index
-	bp.index = int(node.Index)
+	if node != nil {
+		bp.index = int(node.Index)
+	}
 	// we need to change our logger to reflect the potentially changed index
 	bp.log.Debugw("Starting to use new node index for logging", "old", oldIdx, "new", bp.index)
 	bp.log = bp.opts.logger.Named(bp.priv.Public.Addr).Named(bp.getBeaconID()).Named(fmt.Sprint(bp.index))
@@ -886,7 +888,7 @@ func (bp *BeaconProcess) Status(c context.Context, in *drand.StatusRequest) (*dr
 		if err == nil && lastBeacon != nil {
 			chainStore.IsEmpty = false
 			chainStore.LastRound = lastBeacon.GetRound()
-			chainStore.Length = uint64(bp.beacon.Store().Len())
+			chainStore.Length = lastBeacon.GetRound() + 1
 		}
 	}
 
@@ -1012,13 +1014,14 @@ func (bp *BeaconProcess) pushDKGInfoPacket(ctx context.Context, nodes []*key.Nod
 	results := make(chan pushResult, len(nodes))
 
 	for _, node := range nodes {
+		id := node.Identity
 		if node.Address() == bp.priv.Public.Address() {
 			continue
 		}
 		go func(i *key.Identity) {
 			err := bp.privGateway.ProtocolClient.PushDKGInfo(ctx, i, packet)
 			results <- pushResult{i.Address(), err}
-		}(node.Identity)
+		}(id)
 	}
 
 	return results
@@ -1030,7 +1033,7 @@ func (bp *BeaconProcess) pushDKGInfo(outgoing, incoming []*key.Node, previousThr
 	secret []byte, timeout uint32,
 ) error {
 	// sign the group to prove you are the leader
-	signature, err := key.DKGAuthScheme.Sign(bp.priv.Key, group.Hash())
+	signature, err := bp.priv.Scheme().DKGAuthScheme.Sign(bp.priv.Key, group.Hash())
 	if err != nil {
 		bp.log.Errorw("", "setup", "leader", "group_signature", err)
 		return fmt.Errorf("drand: error signing group: %w", err)
@@ -1182,7 +1185,8 @@ func (bp *BeaconProcess) StartFollowChain(req *drand.StartSyncRequest, stream dr
 	}
 
 	// add scheme store to handle scheme configuration on beacon storing process correctly
-	ss := beacon.NewSchemeStore(store, info.Scheme)
+	scheme := crypto.SchemeFromName(info.GetSchemeName())
+	ss := beacon.NewSchemeStore(store, *scheme)
 
 	// register callback to notify client of progress
 	cbStore := beacon.NewCallbackStore(ss)

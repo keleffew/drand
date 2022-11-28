@@ -130,7 +130,7 @@ func newReshareSetup(
 ) (*setupManager, error) {
 	// period isn't included for resharing since we keep the same period
 	beaconPeriod := uint32(oldGroup.Period.Seconds())
-	schemeID := oldGroup.Scheme.ID
+	schemeID := oldGroup.Scheme.Name
 	// we know it was properly set and verified earlier
 	beaconID := oldGroup.ID
 
@@ -258,19 +258,19 @@ func (s *setupManager) createAndSend(keys []*key.Identity) {
 		// round the genesis time to a period modulo
 		ps := int64(s.beaconPeriod.Seconds())
 		genesis += (ps - genesis%ps)
-		group = key.NewGroup(keys, s.thr, genesis, s.beaconPeriod, s.catchupPeriod, s.scheme, s.beaconID)
+		group = key.NewGroup(keys, s.thr, genesis, s.beaconPeriod, s.catchupPeriod, s.scheme.ID, s.beaconID)
 	} else {
 		genesis := s.oldGroup.GenesisTime
 		atLeast := s.clock.Now().Add(totalDKG).Unix()
 		// transitioning to the next round time that is at least
 		// "DefaultResharingOffset" time from now.
 		_, transition := chain.NextRound(atLeast, s.beaconPeriod, s.oldGroup.GenesisTime)
-		group = key.NewGroup(keys, s.thr, genesis, s.beaconPeriod, s.catchupPeriod, s.scheme, s.beaconID)
+		group = key.NewGroup(keys, s.thr, genesis, s.beaconPeriod, s.catchupPeriod, s.scheme.ID, s.beaconID)
 		group.TransitionTime = transition
 		group.GenesisSeed = s.oldGroup.GetGenesisSeed()
 	}
 	s.l.Debugw("", "setup", "created_group")
-	fmt.Printf("Generated group:\n%s\n", group.String()) //nolint
+	s.l.Debugw("Generated group", "group", group.String())
 	// signal the leader it's ready to run the DKG
 	s.startDKG <- group
 }
@@ -374,7 +374,7 @@ func (r *setupReceiver) PushDKGInfo(pg *drand.DKGInfoPacket) error {
 	if err != nil {
 		return fmt.Errorf("group from leader invalid: %w", err)
 	}
-	if err := key.DKGAuthScheme.Verify(r.leaderID.Key, group.Hash(), pg.Signature); err != nil {
+	if err := r.leaderID.Scheme.DKGAuthScheme.Verify(r.leaderID.Key, group.Hash(), pg.Signature); err != nil {
 		r.l.Errorw("", "received", "group", "invalid_sig", err)
 		return fmt.Errorf("invalid group sig: %w", err)
 	}

@@ -15,7 +15,7 @@ import (
 func fakeChainInfo() *chain.Info {
 	sch := scheme.GetSchemeFromEnv()
 	return &chain.Info{
-		Scheme:      sch,
+		Scheme:      sch.Name,
 		Period:      time.Second,
 		GenesisTime: time.Now().Unix(),
 		PublicKey:   test.GenerateIDs(1)[0].Public.Key,

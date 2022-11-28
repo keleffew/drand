@@ -1,6 +1,7 @@
 package key
 
 import (
+	"github.com/drand/kyber/share/dkg"
 	"os"
 	"path"
 	"testing"
@@ -8,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	commonutils "github.com/drand/drand/common"
-	kyber "github.com/drand/kyber"
+	"github.com/drand/kyber"
 	"github.com/drand/kyber/share"
 )
 
@@ -18,11 +19,7 @@ func TestKeysSaveLoad(t *testing.T) {
 	// we don't use the function from the test package here to avoid a circular dependency
 	beaconID := commonutils.GetCanonicalBeaconID(os.Getenv("BEACON_ID"))
 
-	tmp := os.TempDir()
-	tmp = path.Join(tmp, "drand-key")
-
-	os.RemoveAll(tmp)
-	defer os.RemoveAll(tmp)
+	tmp := path.Join(t.TempDir(), "drand-key")
 
 	store := NewFileStore(tmp, beaconID).(*fileStore)
 	require.Equal(t, tmp, store.baseFolder)
@@ -35,6 +32,7 @@ func TestKeysSaveLoad(t *testing.T) {
 
 	require.Equal(t, loadedKey.Key.String(), ps[0].Key.String())
 	require.Equal(t, loadedKey.Public.Key.String(), ps[0].Public.Key.String())
+	require.Equal(t, loadedKey.Public.Scheme.Name, ps[0].Public.Scheme.Name)
 	require.Equal(t, loadedKey.Public.Address(), ps[0].Public.Address())
 	require.True(t, loadedKey.Public.IsTLS())
 
@@ -65,8 +63,11 @@ func TestKeysSaveLoad(t *testing.T) {
 
 	// test share / dist key
 	testShare := &Share{
-		Commits: []kyber.Point{ps[0].Public.Key, ps[1].Public.Key},
-		Share:   &share.PriShare{V: ps[0].Key, I: 0},
+		DistKeyShare: dkg.DistKeyShare{
+			Commits: []kyber.Point{ps[0].Public.Key, ps[1].Public.Key},
+			Share:   &share.PriShare{V: ps[0].Key, I: 0},
+		},
+		Scheme: group.Scheme,
 	}
 	require.Nil(t, store.SaveShare(testShare))
 	loadedShare, err := store.LoadShare()

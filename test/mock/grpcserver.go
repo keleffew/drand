@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/drand/drand/common/scheme"
-	"github.com/drand/drand/key"
 	"github.com/drand/drand/net"
 	"github.com/drand/drand/protobuf/drand"
 	testnet "github.com/drand/drand/test/net"
@@ -46,9 +44,9 @@ func newMockServer(d *Data) *Server {
 		d:           d,
 		chainInfo: &drand.ChainInfoPacket{
 			Period:      uint32(d.Period.Seconds()),
-			GenesisTime: int64(d.Genesis),
+			GenesisTime: d.Genesis,
 			PublicKey:   d.Public,
-			SchemeID:    d.Scheme.ID,
+			SchemeID:    d.Scheme.Name,
 		},
 	}
 }
@@ -86,11 +84,17 @@ func (s *Server) PublicRandStream(req *drand.PublicRandRequest, stream drand.Pub
 	s.stream = stream
 	s.l.Unlock()
 
-	err := <-streamDone
-	s.l.Lock()
-	s.stream = nil
-	s.l.Unlock()
-	return err
+	// We want to remove the stream here but not while it's in use.
+	// To fix this, we'll defer setting stream to nil and wait for
+	// the launched operations to finish, see below.
+	defer func() {
+		s.l.Lock()
+		s.stream = nil
+		s.l.Unlock()
+	}()
+
+	// Wait for values to be sent before returning from this function.
+	return <-streamDone
 }
 
 // EmitRand will cause the next round to be emitted by a previous call to `PublicRandomStream`
@@ -104,6 +108,7 @@ func (s *Server) EmitRand(closeStream bool) {
 	stream := s.stream
 	done := s.streamDone
 	s.l.Unlock()
+
 	if closeStream {
 		close(done)
 		fmt.Println("MOCK SERVER: closing stream upon request")
@@ -126,19 +131,19 @@ func (s *Server) EmitRand(closeStream bool) {
 		fmt.Println("MOCK SERVER: stream send error:", err)
 		return
 	}
-	fmt.Println("MOCK SERVER: emit round done")
+	fmt.Println("MOCK SERVER: emit round done", resp.Round)
 }
 
 func testValid(d *Data) {
 	pub := d.Public
-	pubPoint := key.KeyGroup.Point()
+	pubPoint := d.Scheme.KeyGroup.Point()
 	if err := pubPoint.UnmarshalBinary(pub); err != nil {
 		panic(err)
 	}
 	sig := decodeHex(d.Signature)
 
 	var msg, invMsg []byte
-	if !d.Scheme.DecouplePrevSig {
+	if d.Scheme.IsPreviousSigSignificant {
 		prev := decodeHex(d.PreviousSignature)
 		msg = sha256Hash(append(prev[:], roundToBytes(d.Round)...))
 		invMsg = sha256Hash(append(prev[:], roundToBytes(d.Round-1)...))
@@ -147,14 +152,12 @@ func testValid(d *Data) {
 		invMsg = sha256Hash(roundToBytes(d.Round - 1))
 	}
 
-	if err := scheme.ThresholdScheme.VerifyRecovered(pubPoint, msg, sig); err != nil {
+	if err := d.Scheme.ThresholdScheme.VerifyRecovered(pubPoint, msg, sig); err != nil {
 		panic(err)
 	}
-	if err := scheme.ThresholdScheme.VerifyRecovered(pubPoint, invMsg, sig); err == nil {
+	if err := d.Scheme.ThresholdScheme.VerifyRecovered(pubPoint, invMsg, sig); err == nil {
 		panic("should be invalid signature")
 	}
-	//fmt.Println("valid signature")
-	//VerifyRecovered(public kyber.Point, msg, sig []byte) error
 }
 
 func decodeHex(s string) []byte {
@@ -180,8 +183,8 @@ type Data struct {
 }
 
 func generateMockData(sch crypto.Scheme) *Data {
-	secret := key.KeyGroup.Scalar().Pick(random.New())
-	public := key.KeyGroup.Point().Mul(secret, nil)
+	secret := sch.KeyGroup.Scalar().Pick(random.New())
+	public := sch.KeyGroup.Point().Mul(secret, nil)
 	var previous [32]byte
 	if _, err := rand.Reader.Read(previous[:]); err != nil {
 		panic(err)
@@ -190,14 +193,14 @@ func generateMockData(sch crypto.Scheme) *Data {
 	prevRound := uint64(1968)
 
 	var msg []byte
-	if !sch.DecouplePrevSig {
+	if sch.IsPreviousSigSignificant {
 		msg = sha256Hash(append(previous[:], roundToBytes(round)...))
 	} else {
 		msg = sha256Hash(roundToBytes(round))
 	}
 
 	sshare := share.PriShare{I: 0, V: secret}
-	tsig, err := scheme.ThresholdScheme.Sign(&sshare, msg)
+	tsig, err := sch.ThresholdScheme.Sign(&sshare, msg)
 	if err != nil {
 		panic(err)
 	}
@@ -225,14 +228,14 @@ func nextMockData(d *Data) *Data {
 	previous := decodeHex(d.PreviousSignature)
 
 	var msg []byte
-	if !d.Scheme.DecouplePrevSig {
+	if d.Scheme.IsPreviousSigSignificant {
 		msg = sha256Hash(append(previous[:], roundToBytes(d.Round+1)...))
 	} else {
 		msg = sha256Hash(roundToBytes(d.Round + 1))
 	}
 
 	sshare := share.PriShare{I: 0, V: d.secret}
-	tsig, err := scheme.ThresholdScheme.Sign(&sshare, msg)
+	tsig, err := d.Scheme.ThresholdScheme.Sign(&sshare, msg)
 	if err != nil {
 		panic(err)
 	}

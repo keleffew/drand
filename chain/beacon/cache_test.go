@@ -1,7 +1,6 @@
 package beacon
 
 import (
-	"github.com/drand/drand/chain"
 	"github.com/drand/drand/crypto"
 	"github.com/drand/drand/crypto/verifier"
 	"testing"
@@ -46,11 +45,11 @@ func TestCacheRound(t *testing.T) {
 	msg := verifier.DigestMessage(1, prev)
 	partial := generatePartial(1, round, prev)
 	p2 := generatePartial(2, round, prev)
-	cache := newRoundCache(id, partial)
+	cache := newRoundCache(id, partial, *verifier)
 	require.True(t, cache.append(partial))
 	require.False(t, cache.append(partial))
 	require.Equal(t, 1, cache.Len())
-	require.Equal(t, msg, verifier.DigestMessage(chain.RoundToBytes(1) cache.prev))
+	require.Equal(t, msg, verifier.DigestMessage(1, cache.prev))
 
 	require.True(t, cache.append(p2))
 	require.Equal(t, 2, cache.Len())
@@ -63,7 +62,8 @@ func TestCacheRound(t *testing.T) {
 
 func TestCachePartial(t *testing.T) {
 	l := log.DefaultLogger()
-	cache := newPartialCache(l)
+	v := verifier.NewVerifier(*crypto.SchemeFromName(scheme.DefaultSchemeID))
+	cache := newPartialCache(l, *v)
 	var round uint64 = 64
 	prev := []byte("yesterday was another day")
 
