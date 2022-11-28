@@ -43,7 +43,7 @@ func TestCacheRound(t *testing.T) {
 	sch := scheme.GetSchemeFromEnv()
 	verifier := verifier.NewVerifier(sch)
 
-	msg := verifier.DigestMessage(1, prev)
+	msg := verifier.DigestMessage(round, prev)
 	partial := generatePartial(1, round, prev)
 	p2 := generatePartial(2, round, prev)
 	cache := newRoundCache(id, partial, *verifier)
