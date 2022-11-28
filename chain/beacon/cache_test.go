@@ -1,9 +1,10 @@
 package beacon
 
 import (
+	"testing"
+
 	"github.com/drand/drand/crypto"
 	"github.com/drand/drand/crypto/verifier"
-	"testing"
 
 	"github.com/stretchr/testify/require"
 
