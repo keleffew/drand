@@ -50,7 +50,7 @@ func TestCacheRound(t *testing.T) {
 	require.True(t, cache.append(partial))
 	require.False(t, cache.append(partial))
 	require.Equal(t, 1, cache.Len())
-	require.Equal(t, msg, verifier.DigestMessage(1, cache.prev))
+	require.Equal(t, msg, verifier.DigestMessage(cache.round, cache.prev))
 
 	require.True(t, cache.append(p2))
 	require.Equal(t, 2, cache.Len())
