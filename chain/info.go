@@ -7,6 +7,8 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/drand/drand/common/scheme"
+
 	"github.com/drand/drand/common"
 	"github.com/drand/drand/key"
 	"github.com/drand/drand/log"
@@ -26,6 +28,10 @@ type Info struct {
 
 // NewChainInfo makes a chain Info from a group
 func NewChainInfo(g *key.Group) *Info {
+	schemeName := g.Scheme.Name
+	if len(schemeName) < 1 {
+		schemeName = scheme.DefaultSchemeID
+	}
 	return &Info{
 		ID:          g.ID,
 		Period:      g.Period,

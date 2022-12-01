@@ -5,8 +5,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/drand/drand/crypto"
-
 	json "github.com/nikkolasg/hexjson"
 
 	"github.com/drand/drand/common/scheme"
@@ -20,11 +18,7 @@ func InfoFromProto(p *drand.ChainInfoPacket) (*Info, error) {
 	if err != nil {
 		return nil, fmt.Errorf("scheme id received is not valid. Err: %w", err)
 	}
-	cSch := crypto.SchemeFromName(sch.ID)
-	if cSch == nil {
-		return nil, fmt.Errorf("invalid scheme name in ChainInfoPacket")
-	}
-	public := cSch.KeyGroup.Point()
+	public := sch.KeyGroup.Point()
 	if err := public.UnmarshalBinary(p.PublicKey); err != nil {
 		return nil, err
 	}
@@ -34,7 +28,7 @@ func InfoFromProto(p *drand.ChainInfoPacket) (*Info, error) {
 		GenesisTime: p.GenesisTime,
 		Period:      time.Duration(p.Period) * time.Second,
 		GenesisSeed: p.GroupHash,
-		Scheme:      cSch.Name,
+		Scheme:      sch.Name,
 		ID:          p.GetMetadata().GetBeaconID(),
 	}, nil
 }

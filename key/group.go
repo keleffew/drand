@@ -12,6 +12,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/drand/drand/common/scheme"
+
 	"github.com/drand/drand/crypto"
 
 	"github.com/BurntSushi/toml"
@@ -204,7 +206,7 @@ type GroupTOML struct {
 }
 
 // FromTOML decodes the group from the toml struct
-func (g *Group) FromTOML(i interface{}) (err error) {
+func (g *Group) FromTOML(i interface{}) error {
 	gt, ok := i.(*GroupTOML)
 	if !ok {
 		return fmt.Errorf("grouptoml unknown")
@@ -218,12 +220,12 @@ func (g *Group) FromTOML(i interface{}) (err error) {
 		}
 	}
 
-	sch := crypto.SchemeFromName(gt.SchemeID)
-	if sch != nil {
-		g.Scheme = *sch
-	} else {
-		return fmt.Errorf("unable to isntantiate crypto Scheme name '%s'", gt.SchemeID)
+	// this is a special "migration path", we use the default scheme if none is provided
+	sch, err := scheme.GetSchemeByIDWithDefault(gt.SchemeID)
+	if err != nil {
+		return fmt.Errorf("unable to instantiate crypto Scheme name '%s': %w", gt.SchemeID, err)
 	}
+	g.Scheme = *sch
 
 	if g.Threshold < dkg.MinimumT(len(gt.Nodes)) {
 		return errors.New("group file have threshold 0")
@@ -311,14 +313,15 @@ func (g *Group) TOMLValue() interface{} {
 // in a setup or resharing phase. Every identity is map to a Node struct whose
 // index is the position in the list of identity.
 func NewGroup(list []*Identity, threshold int, genesis int64, period, catchupPeriod time.Duration,
-	sch string, beaconID string) *Group {
+	schemeName string, beaconID string) *Group {
+	sch, _ := scheme.GetSchemeByIDWithDefault(schemeName)
 	return &Group{
 		Nodes:         copyAndSort(list),
 		Threshold:     threshold,
 		GenesisTime:   genesis,
 		Period:        period,
 		CatchupPeriod: catchupPeriod,
-		Scheme:        *crypto.SchemeFromName(sch),
+		Scheme:        *sch,
 		ID:            beaconID,
 	}
 }

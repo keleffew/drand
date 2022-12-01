@@ -32,9 +32,9 @@ type Vault struct {
 	group *key.Group
 }
 
-func NewVault(currentGroup *key.Group, ks *key.Share) *Vault {
+func NewVault(currentGroup *key.Group, ks *key.Share, sch crypto.Scheme) *Vault {
 	return &Vault{
-		Scheme: currentGroup.Scheme,
+		Scheme: sch,
 		chain:  chain.NewChainInfo(currentGroup),
 		share:  ks,
 		pub:    currentGroup.PublicKey.PubPoly(),

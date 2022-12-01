@@ -36,14 +36,14 @@ func GetSchemeByID(id string) (scheme Scheme, found bool) {
 // GetSchemeByIDWithDefault allows the user to retrieve the scheme configuration looking by its ID. It will return a boolean which indicates
 // if the scheme was found or not. In addition to it, if the received ID is an empty string,
 // it will return the default defined scheme
-func GetSchemeByIDWithDefault(id string) (scheme Scheme, err error) {
+func GetSchemeByIDWithDefault(id string) (scheme *crypto.Scheme, err error) {
 	if id == "" {
 		id = DefaultSchemeID
 	}
 
-	sch, ok := GetSchemeByID(id)
-	if !ok {
-		return Scheme{}, fmt.Errorf("scheme [%s] is not valid", id)
+	sch := crypto.SchemeFromName(id)
+	if sch == nil {
+		return nil, fmt.Errorf("scheme [%s] is not valid", id)
 	}
 
 	return sch, nil

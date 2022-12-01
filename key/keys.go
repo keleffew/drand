@@ -152,14 +152,15 @@ func (p *Pair) FromTOML(i interface{}) error {
 	if !ok {
 		return errors.New("private can't decode toml from non PairTOML struct")
 	}
-	scheme := crypto.SchemeFromName(ptoml.SchemeName)
-	if scheme == nil {
-		return fmt.Errorf("invalid Scheme name in Pair FromTOML: %s", ptoml.SchemeName)
+	// this is a special "migration path", we use the default scheme if none is provided
+	sch, err := scheme.GetSchemeByIDWithDefault(ptoml.SchemeName)
+	if err != nil {
+		return err
 	}
-	var err error
-	p.Key, err = StringToScalar(scheme.KeyGroup, ptoml.Key)
+
+	p.Key, err = StringToScalar(sch.KeyGroup, ptoml.Key)
 	p.Public = new(Identity)
-	p.Public.Scheme = *scheme
+	p.Public.Scheme = *sch
 
 	return err
 }
@@ -175,10 +176,9 @@ func (i *Identity) FromTOML(t interface{}) error {
 	if !ok {
 		return errors.New("public can't decode from non PublicTOML struct")
 	}
-	var err error
-	sch := crypto.SchemeFromName(ptoml.SchemeName)
-	if sch == nil {
-		return fmt.Errorf("invalid Scheme name in Identity FromTOML: %s", ptoml.SchemeName)
+	sch, err := scheme.GetSchemeByIDWithDefault(ptoml.SchemeName)
+	if err != nil {
+		return err
 	}
 	i.Scheme = *sch
 	i.Key, err = StringToPoint(sch.KeyGroup, ptoml.Key)
@@ -402,13 +402,13 @@ func (d *DistPublic) FromTOML(i interface{}) error {
 	}
 	points := make([]kyber.Point, len(dtoml.Coefficients))
 
-	sch := crypto.SchemeFromName(dtoml.SchemeName)
-	if sch == nil {
+	// migration path
+	sch, err := scheme.GetSchemeByIDWithDefault(dtoml.SchemeName)
+	if err != nil {
 		return fmt.Errorf("Invalid SchemeName in DistPublic FromTOML: %s", dtoml.SchemeName)
 	}
 	d.Scheme = *sch
 
-	var err error
 	for i, s := range dtoml.Coefficients {
 		points[i], err = StringToPoint(d.Scheme.KeyGroup, s)
 		if err != nil {

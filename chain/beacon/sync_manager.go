@@ -75,7 +75,7 @@ type SyncConfig struct {
 func NewSyncManager(c *SyncConfig) *SyncManager {
 	sch := crypto.SchemeFromName(c.Info.GetSchemeName())
 	if sch == nil {
-		panic("invalid scheme name provided to sync manager")
+		panic("invalid scheme name provided to sync manager:" + c.Info.GetSchemeName())
 	}
 
 	return &SyncManager{

@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/drand/drand/crypto"
+
 	"github.com/briandowns/spinner"
 	json "github.com/nikkolasg/hexjson"
 	"github.com/urfave/cli/v2"
@@ -194,7 +196,7 @@ func leadShareCmd(c *cli.Context) error {
 		return fmt.Errorf("catchup period given is invalid: %w", err)
 	}
 
-	var sch scheme.Scheme
+	var sch *crypto.Scheme
 	if sch, err = scheme.GetSchemeByIDWithDefault(c.String(schemeFlag.Name)); err != nil {
 		return fmt.Errorf("scheme given is invalid: %w", err)
 	}
@@ -216,7 +218,7 @@ func leadShareCmd(c *cli.Context) error {
 	// new line
 	fmt.Fprintln(output, "")
 	groupP, shareErr := ctrlClient.InitDKGLeader(nodes, args.threshold, period,
-		catchupPeriod, args.timeout, args.entropy, args.secret, offset, sch.ID, beaconID)
+		catchupPeriod, args.timeout, args.entropy, args.secret, offset, sch.Name, beaconID)
 
 	if shareErr != nil {
 		return fmt.Errorf("error setting up the network: %w", shareErr)

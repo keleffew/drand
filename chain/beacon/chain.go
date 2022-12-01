@@ -41,7 +41,7 @@ type chainStore struct {
 	beaconStoredAgg chan *chain.Beacon
 }
 
-func newChainStore(l log.Logger, cf *Config, cl net.ProtocolClient, c *vault.Vault, store chain.Store, t *ticker) *chainStore {
+func newChainStore(l log.Logger, cf *Config, cl net.ProtocolClient, v *vault.Vault, store chain.Store, t *ticker) *chainStore {
 	// we make sure the chain is increasing monotonically
 	as := newAppendStore(store)
 
@@ -49,7 +49,7 @@ func newChainStore(l log.Logger, cf *Config, cl net.ProtocolClient, c *vault.Vau
 	ss := NewSchemeStore(as, cf.Group.Scheme)
 
 	// we write some stats about the timing when new beacon is saved
-	ds := newDiscrepancyStore(ss, l, c.GetGroup(), cf.Clock)
+	ds := newDiscrepancyStore(ss, l, v.GetGroup(), cf.Clock)
 
 	// we can register callbacks on it
 	cbs := NewCallbackStore(ds)
@@ -59,14 +59,14 @@ func newChainStore(l log.Logger, cf *Config, cl net.ProtocolClient, c *vault.Vau
 		Log:         l,
 		Store:       cbs,
 		BoltdbStore: store,
-		Info:        c.GetInfo(),
+		Info:        v.GetInfo(),
 		Client:      cl,
 		Clock:       cf.Clock,
 		NodeAddr:    cf.Public.Address(),
 	})
 	go syncm.Run()
 
-	verifier := verifier.NewVerifier(cf.Group.Scheme)
+	verifier := verifier.NewVerifier(v.Scheme)
 
 	cs := &chainStore{
 		CallbackStore:   cbs,
@@ -75,7 +75,7 @@ func newChainStore(l log.Logger, cf *Config, cl net.ProtocolClient, c *vault.Vau
 		client:          cl,
 		syncm:           syncm,
 		verifier:        verifier,
-		crypto:          c,
+		crypto:          v,
 		ticker:          t,
 		done:            make(chan bool, 1),
 		newPartials:     make(chan partialInfo, defaultPartialChanBuffer),
