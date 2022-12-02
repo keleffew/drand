@@ -12,7 +12,7 @@ import (
 )
 
 func TestChainInfo(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	beaconID := "test_beacon"
 
 	_, g1 := test.BatchIdentities(5, sch, beaconID)

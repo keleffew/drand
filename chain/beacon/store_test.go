@@ -14,7 +14,7 @@ import (
 )
 
 func TestSchemeStore(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	dir := t.TempDir()
 	ctx := context.Background()

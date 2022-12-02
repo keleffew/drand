@@ -51,7 +51,7 @@ func TestClientLib(t *testing.T) {
 		t.Fatal("need to specify a connection method.", err)
 	}
 
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	addr, info, cancel, _ := httpmock.NewMockHTTPPublicServer(t, false, sch)
 	defer cancel()
@@ -105,7 +105,7 @@ func TestClientLibGroupConfTOML(t *testing.T) {
 }
 
 func TestClientLibGroupConfJSON(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	addr, info, cancel, _ := httpmock.NewMockHTTPPublicServer(t, false, sch)
 	defer cancel()

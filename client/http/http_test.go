@@ -14,7 +14,7 @@ import (
 )
 
 func TestHTTPClient(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	addr, chainInfo, cancel, _ := mock.NewMockHTTPPublicServer(t, true, sch)
 	defer cancel()
 
@@ -54,7 +54,7 @@ func TestHTTPClient(t *testing.T) {
 }
 
 func TestHTTPGetLatest(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	addr, chainInfo, cancel, _ := mock.NewMockHTTPPublicServer(t, false, sch)
 	defer cancel()
 
@@ -89,7 +89,7 @@ func TestHTTPGetLatest(t *testing.T) {
 }
 
 func TestForURLsCreation(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	addr, chainInfo, cancel, _ := mock.NewMockHTTPPublicServer(t, false, sch)
 	defer cancel()
 
@@ -107,7 +107,7 @@ func TestForURLsCreation(t *testing.T) {
 }
 
 func TestHTTPWatch(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	addr, chainInfo, cancel, _ := mock.NewMockHTTPPublicServer(t, false, sch)
 	defer cancel()
 
@@ -137,7 +137,7 @@ func TestHTTPWatch(t *testing.T) {
 }
 
 func TestHTTPClientClose(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	addr, chainInfo, cancel, _ := mock.NewMockHTTPPublicServer(t, false, sch)
 	defer cancel()

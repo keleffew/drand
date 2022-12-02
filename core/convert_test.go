@@ -16,7 +16,7 @@ func TestConvertJustification(t *testing.T) {
 	j := new(dkg.JustificationBundle)
 	j.Signature = []byte{1, 2, 3}
 	j.DealerIndex = 32
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	j.Justifications = []dkg.Justification{
 		{
 			ShareIndex: 10,

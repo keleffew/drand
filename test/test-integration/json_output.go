@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	verifier2 "github.com/drand/drand/crypto/verifier"
+	"github.com/drand/drand/crypto/verifier"
 
 	dscheme "github.com/drand/drand/common/scheme"
 	"github.com/drand/kyber/sign/bls"
@@ -15,7 +15,10 @@ import (
 // interoperability testing with the other repos such as drandjs.
 
 func main() {
-	sch := dscheme.GetSchemeFromEnv()
+	sch, err := dscheme.GetSchemeFromEnv()
+	if err != nil {
+		panic(err)
+	}
 
 	private := sch.KeyGroup.Scalar().Pick(random.New())
 	public := sch.KeyGroup.Point().Mul(private, nil)
@@ -27,9 +30,9 @@ func main() {
 		panic(err)
 	}
 
-	verifier := verifier2.NewVerifier(sch)
+	verif := verifier.NewVerifier(sch)
 
-	msg := verifier.DigestMessage(uint64(round), previousSig)
+	msg := verif.DigestMessage(uint64(round), previousSig)
 	signature, err := scheme.Sign(private, msg)
 	if err != nil {
 		panic(err)

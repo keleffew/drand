@@ -34,7 +34,7 @@ func TestNoPanicWhenDrandDaemonPortInUse(t *testing.T) {
 }
 
 func TestDrandDaemon_Stop(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	privs, _ := test.BatchIdentities(1, sch, t.Name())
 
 	port := test.FreePort()

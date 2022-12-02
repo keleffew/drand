@@ -201,7 +201,11 @@ func getSleepDuration() time.Duration {
 // NewDrandTest creates a drand test scenario with initial n nodes and ready to
 // run a DKG for the given threshold that will then launch the beacon with the
 // specified period
-func NewDrandTestScenario(t *testing.T, n, thr int, period time.Duration, sch *crypto.Scheme, beaconID string) *DrandTestScenario {
+func NewDrandTestScenario(t *testing.T, n, thr int, period time.Duration, beaconID string) *DrandTestScenario {
+	sch, err := scheme.GetSchemeFromEnv()
+	if err != nil {
+		panic(err)
+	}
 	dt := new(DrandTestScenario)
 	beaconID = common.GetCanonicalBeaconID(beaconID)
 
@@ -955,7 +959,7 @@ func (b *testBroadcast) BroadcastDKG(c context.Context, p *drand.DKGPacket) erro
 		return err
 	}
 
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	dkgPacket, _ := protoToDKGPacket(p.GetDkg(), sch)
 	hash := hash(dkgPacket.Hash())
 	b.Lock()

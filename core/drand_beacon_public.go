@@ -73,7 +73,7 @@ func (bp *BeaconProcess) PublicRand(ctx context.Context, in *drand.PublicRandReq
 	}
 	if err != nil || beaconResp == nil {
 		bp.log.Debugw("", "public_rand", "unstored_beacon", "round", in.GetRound(), "from", addr)
-		return nil, fmt.Errorf("can't retrieve beacon: %w %s", err, beaconResp)
+		return nil, fmt.Errorf("can't retrieve beacon: %w", err)
 	}
 	bp.log.Debugw("", "public_rand", addr, "round", beaconResp.Round, "reply", beaconResp.String())
 

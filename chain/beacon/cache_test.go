@@ -17,7 +17,7 @@ import (
 var fakeKey, _ = key.NewKeyPair("127.0.0.1:8080")
 
 func generatePartial(idx int, round uint64, prev []byte) *drand.PartialBeaconPacket {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	verif := verifier.NewVerifier(sch)
 
 	sh := &share.PriShare{
@@ -39,7 +39,7 @@ func TestCacheRound(t *testing.T) {
 	round := uint64(64)
 	prev := []byte("yesterday was another day")
 
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	verif := verifier.NewVerifier(sch)
 
 	msg := verif.DigestMessage(round, prev)
@@ -62,7 +62,7 @@ func TestCacheRound(t *testing.T) {
 
 func TestCachePartial(t *testing.T) {
 	l := log.DefaultLogger()
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	v := verifier.NewVerifier(sch)
 	cache := newPartialCache(l, v)
 	var round uint64 = 64

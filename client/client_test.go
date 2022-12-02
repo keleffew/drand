@@ -40,7 +40,7 @@ func TestClientConstraints(t *testing.T) {
 }
 
 func TestClientMultiple(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	addr1, chainInfo, cancel, _ := httpmock.NewMockHTTPPublicServer(t, false, sch)
 	defer cancel()
@@ -95,7 +95,7 @@ func TestClientWithChainInfo(t *testing.T) {
 }
 
 func TestClientCache(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	addr1, chainInfo, cancel, _ := httpmock.NewMockHTTPPublicServer(t, false, sch)
 	defer cancel()
@@ -132,7 +132,7 @@ func TestClientCache(t *testing.T) {
 }
 
 func TestClientWithoutCache(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	addr1, chainInfo, cancel, _ := httpmock.NewMockHTTPPublicServer(t, false, sch)
 	defer cancel()
 
@@ -166,7 +166,7 @@ func TestClientWithoutCache(t *testing.T) {
 
 func TestClientWithWatcher(t *testing.T) {
 	t.Skipf("Skip flaky test")
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	info, results := mock.VerifiableResults(2, sch)
 
 	ch := make(chan client.Result, len(results))
@@ -243,7 +243,7 @@ func TestClientChainInfoOverrideError(t *testing.T) {
 }
 
 func TestClientAutoWatch(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	addr1, chainInfo, cancel, _ := httpmock.NewMockHTTPPublicServer(t, false, sch)
 	defer cancel()
@@ -292,7 +292,7 @@ func TestClientAutoWatch(t *testing.T) {
 }
 
 func TestClientAutoWatchRetry(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	info, results := mock.VerifiableResults(5, sch)
 	resC := make(chan client.Result)
@@ -371,7 +371,7 @@ func compareResults(t *testing.T, expected, actual client.Result) {
 
 // fakeChainInfo creates a chain info object for use in tests.
 func fakeChainInfo() *chain.Info {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	return &chain.Info{
 		Period:      time.Second,
 		GenesisTime: time.Now().Unix(),

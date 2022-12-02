@@ -13,7 +13,7 @@ import (
 
 // fakeChainInfo creates a chain info object for use in tests.
 func fakeChainInfo() *chain.Info {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	return &chain.Info{
 		Scheme:      sch.Name,
 		Period:      time.Second,

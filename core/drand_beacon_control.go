@@ -366,8 +366,9 @@ func (bp *BeaconProcess) runDKG(leader bool, group *key.Group, timeout uint32, r
 	beaconID := commonutils.GetCanonicalBeaconID(group.ID)
 
 	reader, user := extractEntropy(randomness)
+	sch := bp.priv.Scheme()
 	config := &dkg.Config{
-		Suite:          bp.priv.Scheme().KeyGroup.(dkg.Suite),
+		Suite:          sch.KeyGroup.(dkg.Suite),
 		NewNodes:       group.DKGNodes(),
 		Longterm:       bp.priv.Key,
 		Reader:         reader,
@@ -375,14 +376,14 @@ func (bp *BeaconProcess) runDKG(leader bool, group *key.Group, timeout uint32, r
 		FastSync:       true,
 		Threshold:      group.Threshold,
 		Nonce:          getNonce(group),
-		Auth:           bp.priv.Scheme().DKGAuthScheme,
+		Auth:           sch.DKGAuthScheme,
 		Log:            bp.log,
 	}
 	phaser := bp.getPhaser(timeout)
 	board := newEchoBroadcast(bp.log, bp.version, beaconID, bp.privGateway.ProtocolClient,
 		bp.priv.Public.Address(), group.Nodes, func(p dkg.Packet) error {
 			return dkg.VerifyPacketSignature(config, p)
-		}, bp.priv.Scheme())
+		}, sch)
 	dkgProto, err := dkg.NewProtocol(config, board, phaser, true)
 	if err != nil {
 		return nil, err
@@ -457,11 +458,11 @@ func (bp *BeaconProcess) runResharing(leader bool, oldGroup, newGroup *key.Group
 		bp.log.Errorw("", "run_reshare", "invalid", "leader", leader, "old_present", oldPresent)
 		return nil, errors.New("can not be a leader if not present in the old group")
 	}
-
+	sch := bp.priv.Scheme()
 	newNode := newGroup.Find(bp.priv.Public)
 	newPresent := newNode != nil
 	config := &dkg.Config{
-		Suite:        bp.priv.Scheme().KeyGroup.(dkg.Suite),
+		Suite:        sch.KeyGroup.(dkg.Suite),
 		NewNodes:     newGroup.DKGNodes(),
 		OldNodes:     oldGroup.DKGNodes(),
 		Longterm:     bp.priv.Key,
@@ -469,7 +470,7 @@ func (bp *BeaconProcess) runResharing(leader bool, oldGroup, newGroup *key.Group
 		OldThreshold: oldGroup.Threshold,
 		FastSync:     true,
 		Nonce:        getNonce(newGroup),
-		Auth:         bp.priv.Scheme().DKGAuthScheme,
+		Auth:         sch.DKGAuthScheme,
 		Log:          bp.log,
 	}
 	err := func() error {
@@ -499,7 +500,7 @@ func (bp *BeaconProcess) runResharing(leader bool, oldGroup, newGroup *key.Group
 	var board Broadcast = newEchoBroadcast(bp.log, bp.version, oldBeaconID, bp.privGateway.ProtocolClient,
 		bp.priv.Public.Address(), allNodes, func(p dkg.Packet) error {
 			return dkg.VerifyPacketSignature(config, p)
-		}, bp.priv.Scheme())
+		}, sch)
 
 	if bp.dkgBoardSetup != nil {
 		board = bp.dkgBoardSetup(board)

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	dcrypto "github.com/drand/drand/crypto/vault"
+	"github.com/drand/drand/crypto/vault"
 	"github.com/drand/drand/crypto/verifier"
 
 	clock "github.com/jonboulle/clockwork"
@@ -46,7 +46,7 @@ type Handler struct {
 	// to communicate with other drand peers
 	client net.ProtocolClient
 	// keeps the cryptographic info (group share etc)
-	crypto *dcrypto.Vault
+	crypto *vault.Vault
 	// main logic that treats incoming packet / new beacons created
 	chain    *chainStore
 	ticker   *ticker
@@ -75,20 +75,20 @@ func NewHandler(c net.ProtocolClient, s chain.Store, conf *Config, l log.Logger,
 	}
 	addr := conf.Public.Address()
 
-	vault := dcrypto.NewVault(conf.Group, conf.Share, conf.Public.Identity.Scheme)
+	v := vault.NewVault(conf.Group, conf.Share, conf.Public.Identity.Scheme)
 	// insert genesis beacon
 	if err := s.Put(context.Background(), chain.GenesisBeacon(conf.Group.GenesisSeed)); err != nil {
 		return nil, err
 	}
 
 	ticker := newTicker(conf.Clock, conf.Group.Period, conf.Group.GenesisTime)
-	store := newChainStore(l, conf, c, vault, s, ticker)
+	store := newChainStore(l, conf, c, v, s, ticker)
 	verif := verifier.NewVerifier(conf.Group.Scheme)
 
 	handler := &Handler{
 		conf:     conf,
 		client:   c,
-		crypto:   vault,
+		crypto:   v,
 		chain:    store,
 		verifier: verif,
 		ticker:   ticker,

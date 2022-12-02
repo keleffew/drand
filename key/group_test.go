@@ -40,7 +40,7 @@ func TestGroupProtobuf(t *testing.T) {
 	n := 9
 	thr := 5
 	ids := newIds(n)
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	dpub := []kyber.Point{sch.KeyGroup.Point().Pick(random.New())}
 	group := LoadGroup(ids, 1, &DistPublic{dpub, sch}, 30*time.Second, 61, sch, "test_beacon")
@@ -110,7 +110,7 @@ func TestGroupProtobuf(t *testing.T) {
 
 func TestGroupUnsignedIdentities(t *testing.T) {
 	ids := newIds(5)
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	group := LoadGroup(ids, 1, &DistPublic{[]kyber.Point{sch.KeyGroup.Point()}, sch}, 30*time.Second, 61, sch, "test_beacon")
 	require.Nil(t, group.UnsignedIdentities())
@@ -124,7 +124,7 @@ func TestGroupUnsignedIdentities(t *testing.T) {
 func TestGroupSaveLoad(t *testing.T) {
 	n := 3
 	ids := newIds(n)
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	dpub := []kyber.Point{sch.KeyGroup.Point().Pick(random.New())}
 
@@ -167,7 +167,7 @@ func TestGroupSaveLoad(t *testing.T) {
 // BatchIdentities generates n insecure identities
 func makeGroup(t *testing.T) *Group {
 	t.Helper()
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	fakeKey := sch.KeyGroup.Point().Pick(random.New())
 	group := LoadGroup([]*Node{}, 1, &DistPublic{Coefficients: []kyber.Point{fakeKey}, Scheme: sch}, 30*time.Second, 0, sch, "test_beacon")

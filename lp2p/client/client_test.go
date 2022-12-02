@@ -28,7 +28,7 @@ import (
 func TestGRPCClientTestFunc(t *testing.T) {
 	t.Skip("TestGRPCClientTestFunc is flaky")
 	// start mock drand node
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	grpcLis, svc := mock.NewMockGRPCPublicServer(":0", false, sch)
 	grpcAddr := grpcLis.Addr()
@@ -111,7 +111,7 @@ func drain(t *testing.T, ch <-chan client.Result, timeout time.Duration) {
 
 func TestHTTPClientTestFunc(t *testing.T) {
 	t.Skip("TestHTTPClientTestFunc is flaky")
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	addr, chainInfo, stop, emit := httpmock.NewMockHTTPPublicServer(t, false, sch)
 	defer stop()

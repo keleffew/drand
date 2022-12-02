@@ -9,7 +9,7 @@ import (
 )
 
 func BenchmarkVerifyBeacon(b *testing.B) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 
 	secret := sch.KeyGroup.Scalar().Pick(random.New())
 	public := sch.KeyGroup.Point().Mul(secret, nil)

@@ -23,7 +23,6 @@ func installDrand() {
 	install := exec.Command("go", "install")
 	runCommand(install)
 	checkErr(os.Chdir(curr))
-
 }
 
 var build = flag.Bool("build", false, "build the drand binary first")
@@ -44,7 +43,11 @@ func main() {
 	nRound, n := 2, 6
 	thr, newThr := 4, 5
 	period := "10s"
-	sch, beaconID := scheme.GetSchemeFromEnv(), test.GetBeaconIDFromEnv()
+	sch, err := scheme.GetSchemeFromEnv()
+	if err != nil {
+		panic(err)
+	}
+	beaconID := test.GetBeaconIDFromEnv()
 
 	orch := lib.NewOrchestrator(n, thr, period, true, *binaryF, !*noCurl, sch, beaconID, true)
 	// NOTE: this line should be before "StartNewNodes". The reason it is here

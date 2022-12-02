@@ -65,7 +65,7 @@ func TestValidateGroupTransitionBeaconID(t *testing.T) {
 func TestValidateGroupTransitionGenesisSeed(t *testing.T) {
 	d := BeaconProcess{log: log.DefaultLogger()}
 	var oldgrp, newgrp key.Group
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	randomDistPublic := func(n int) *key.DistPublic {
 		publics := make([]kyber.Point, n)
 		for i := range publics {

@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/drand/drand/common/scheme"
+
 	"github.com/drand/drand/crypto"
 	"github.com/drand/kyber/share/dkg"
 
@@ -26,7 +28,6 @@ import (
 	"github.com/drand/drand/chain"
 	"github.com/drand/drand/chain/boltdb"
 	"github.com/drand/drand/common"
-	"github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/core"
 	"github.com/drand/drand/fs"
 	"github.com/drand/drand/key"
@@ -219,7 +220,7 @@ func TestStartAndStop(t *testing.T) {
 	tmpPath := t.TempDir()
 
 	n := 5
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	beaconID := test.GetBeaconIDFromEnv()
 
 	_, group := test.BatchIdentities(n, sch, beaconID)
@@ -322,7 +323,7 @@ func TestUtilCheck(t *testing.T) {
 //nolint:funlen
 func TestStartWithoutGroup(t *testing.T) {
 	t.Skipf("Test fails when error checking commands")
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	beaconID := test.GetBeaconIDFromEnv()
 
 	tmpPath := path.Join(t.TempDir(), "drand")
@@ -557,7 +558,7 @@ func testListSchemes(t *testing.T, ctrlPort string) {
 //nolint:funlen //This is a test
 func TestClientTLS(t *testing.T) {
 	t.Skipf("test fails when error checking commands")
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	beaconID := test.GetBeaconIDFromEnv()
 
 	tmpPath := path.Join(t.TempDir(), "drand")
@@ -719,7 +720,7 @@ func TestDrandListSchemes(t *testing.T) {
 }
 
 func TestDrandReloadBeacon(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	beaconID := test.GetBeaconIDFromEnv()
 
 	n := 4
@@ -775,7 +776,7 @@ func TestDrandReloadBeacon(t *testing.T) {
 }
 
 func TestDrandLoadNotPresentBeacon(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	beaconID := test.GetBeaconIDFromEnv()
 
 	n := 4

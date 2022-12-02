@@ -15,7 +15,7 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	l, server := mock.NewMockGRPCPublicServer("localhost:0", false, sch)
 	addr := l.Addr()
 
@@ -64,7 +64,7 @@ func TestClient(t *testing.T) {
 }
 
 func TestClientClose(t *testing.T) {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	l, _ := mock.NewMockGRPCPublicServer("localhost:0", false, sch)
 	addr := l.Addr()
 

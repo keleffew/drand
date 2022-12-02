@@ -93,8 +93,10 @@ func (p *Pair) SelfSign() error {
 // NewKeyPair returns a freshly created private / public key pair. The group is
 // decided by the group variable by default.
 func NewKeyPair(address string) (*Pair, error) {
-	sch := scheme.GetSchemeFromEnv()
-
+	sch, err := scheme.GetSchemeFromEnv()
+	if err != nil {
+		return nil, err
+	}
 	key := sch.KeyGroup.Scalar().Pick(random.New())
 	pubKey := sch.KeyGroup.Point().Mul(key, nil)
 
@@ -108,7 +110,7 @@ func NewKeyPair(address string) (*Pair, error) {
 		Public: pub,
 	}
 
-	err := p.SelfSign()
+	err = p.SelfSign()
 	return p, err
 }
 

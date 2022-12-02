@@ -72,7 +72,7 @@ func TestKeySignature(t *testing.T) {
 func TestKeyDistributedPublic(t *testing.T) {
 	n := 4
 	publics := make([]kyber.Point, n)
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	for i := range publics {
 		key := sch.KeyGroup.Scalar().Pick(random.New())
 		publics[i] = sch.KeyGroup.Point().Mul(key, nil)
@@ -120,7 +120,7 @@ func TestShare(t *testing.T) {
 	n := 5
 	s := new(Share)
 	s.Commits = make([]kyber.Point, n)
-	s.Scheme = scheme.GetSchemeFromEnv()
+	s.Scheme, _ = scheme.GetSchemeFromEnv()
 	for i := 0; i < n; i++ {
 		s.Commits[i] = s.Scheme.KeyGroup.Point().Pick(random.New())
 	}
@@ -152,7 +152,7 @@ func BatchIdentities(n int) ([]*Pair, *Group) {
 			Identity: privs[i].Public,
 		}
 	}
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	fakeDistKey := sch.KeyGroup.Point().Pick(random.New())
 	distKey := &DistPublic{Coefficients: []kyber.Point{fakeDistKey}, Scheme: sch}
 	group := &Group{

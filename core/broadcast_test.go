@@ -64,7 +64,8 @@ func TestBroadcastSet(t *testing.T) {
 
 func TestBroadcast(t *testing.T) {
 	n := 5
-	sch, beaconID := scheme.GetSchemeFromEnv(), test.GetBeaconIDFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
+	beaconID := test.GetBeaconIDFromEnv()
 	//nolint:dogsled
 	_, drands, group, _, _ := BatchNewDrand(t, n, true, sch, beaconID)
 
@@ -179,7 +180,7 @@ func drain(t *testing.T, ch chan dkg.DealBundle) int {
 }
 
 func fakeDeal() *dkg.DealBundle {
-	sch := scheme.GetSchemeFromEnv()
+	sch, _ := scheme.GetSchemeFromEnv()
 	return &dkg.DealBundle{
 		DealerIndex: 0,
 		Public:      []kyber.Point{sch.KeyGroup.Point().Pick(random.New())},

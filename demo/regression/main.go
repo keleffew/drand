@@ -84,7 +84,11 @@ func main() {
 	n := 5
 	thr := 4
 	period := "10s"
-	sch, beaconID := scheme.GetSchemeFromEnv(), test.GetBeaconIDFromEnv()
+	sch, err := scheme.GetSchemeFromEnv()
+	if err != nil {
+		panic(err)
+	}
+	beaconID := test.GetBeaconIDFromEnv()
 
 	orch := lib.NewOrchestrator(n, thr, period, true, *build, false, sch, beaconID, false)
 	orch.UpdateBinary(*candidate, 2, true)
