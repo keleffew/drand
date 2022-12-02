@@ -16,19 +16,19 @@ type Opts struct {
 	strict bool
 
 	// scheme holds a set of values the verifying process will use to act in specific ways, regarding signature verification, etc
-	scheme crypto.Scheme
+	scheme *crypto.Scheme
 }
 
 // newVerifyingClient wraps a client to perform `chain.Verify` on emitted results.
 func newVerifyingClient(c Client, previousResult Result, opts Opts) Client {
-	verifier := verifier.NewVerifier(opts.scheme)
+	verif := verifier.NewVerifier(opts.scheme)
 
 	return &verifyingClient{
 		Client:         c,
 		indirectClient: c,
 		pointOfTrust:   previousResult,
 		opts:           opts,
-		verifier:       verifier,
+		verifier:       verif,
 	}
 }
 

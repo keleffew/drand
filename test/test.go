@@ -127,7 +127,7 @@ func GenerateIDs(n int) []*key.Pair {
 }
 
 // BatchIdentities generates n insecure identities
-func BatchIdentities(n int, sch crypto.Scheme, beaconID string) ([]*key.Pair, *key.Group) {
+func BatchIdentities(n int, sch *crypto.Scheme, beaconID string) ([]*key.Pair, *key.Group) {
 	beaconID = commonutils.GetCanonicalBeaconID(beaconID)
 	privs := GenerateIDs(n)
 
@@ -144,7 +144,7 @@ func BatchIdentities(n int, sch crypto.Scheme, beaconID string) ([]*key.Pair, *k
 }
 
 // BatchTLSIdentities generates n secure (TLS) identities
-func BatchTLSIdentities(n int, sch crypto.Scheme, beaconID string) ([]*key.Pair, *key.Group) {
+func BatchTLSIdentities(n int, sch *crypto.Scheme, beaconID string) ([]*key.Pair, *key.Group) {
 	pairs, group := BatchIdentities(n, sch, beaconID)
 	for i := 0; i < n; i++ {
 		pairs[i].Public.TLS = true

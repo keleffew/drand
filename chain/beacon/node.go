@@ -83,14 +83,14 @@ func NewHandler(c net.ProtocolClient, s chain.Store, conf *Config, l log.Logger,
 
 	ticker := newTicker(conf.Clock, conf.Group.Period, conf.Group.GenesisTime)
 	store := newChainStore(l, conf, c, vault, s, ticker)
-	verifier := verifier.NewVerifier(conf.Group.Scheme)
+	verif := verifier.NewVerifier(conf.Group.Scheme)
 
 	handler := &Handler{
 		conf:     conf,
 		client:   c,
 		crypto:   vault,
 		chain:    store,
-		verifier: verifier,
+		verifier: verif,
 		ticker:   ticker,
 		addr:     addr,
 		close:    make(chan bool),

@@ -68,9 +68,9 @@ func randomnessValidator(info *chain.Info, cache client.Cache, c *Client) pubsub
 		if scheme == nil {
 			return pubsub.ValidationReject
 		}
-		verifier := verifier.NewVerifier(*scheme)
+		verif := verifier.NewVerifier(scheme)
 
-		err = verifier.VerifyBeacon(b, info.PublicKey)
+		err = verif.VerifyBeacon(b, info.PublicKey)
 
 		if err != nil {
 			return pubsub.ValidationReject

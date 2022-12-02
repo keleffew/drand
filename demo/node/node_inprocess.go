@@ -28,7 +28,7 @@ type LocalNode struct {
 	i          int
 	period     string
 	beaconID   string
-	scheme     crypto.Scheme
+	scheme     *crypto.Scheme
 	logPath    string
 	privAddr   string
 	pubAddr    string
@@ -42,7 +42,7 @@ type LocalNode struct {
 	daemon *core.DrandDaemon
 }
 
-func NewLocalNode(i int, period string, base string, tls bool, bindAddr string, sch crypto.Scheme, beaconID string) Node {
+func NewLocalNode(i int, period string, base string, tls bool, bindAddr string, sch *crypto.Scheme, beaconID string) Node {
 	nbase := path.Join(base, fmt.Sprintf("node-%d", i))
 	os.MkdirAll(nbase, 0740)
 	logPath := path.Join(nbase, "log")

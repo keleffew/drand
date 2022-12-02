@@ -66,7 +66,7 @@ func newChainStore(l log.Logger, cf *Config, cl net.ProtocolClient, v *vault.Vau
 	})
 	go syncm.Run()
 
-	verifier := verifier.NewVerifier(v.Scheme)
+	verif := verifier.NewVerifier(v.Scheme)
 
 	cs := &chainStore{
 		CallbackStore:   cbs,
@@ -74,7 +74,7 @@ func newChainStore(l log.Logger, cf *Config, cl net.ProtocolClient, v *vault.Vau
 		conf:            cf,
 		client:          cl,
 		syncm:           syncm,
-		verifier:        verifier,
+		verifier:        verif,
 		crypto:          v,
 		ticker:          t,
 		done:            make(chan bool, 1),
@@ -118,7 +118,7 @@ func (c *chainStore) runAggregator() {
 		c.l.Fatalw("", "chain_aggregator", "loading", "last_beacon", err)
 	}
 
-	var cache = newPartialCache(c.l, *c.verifier)
+	var cache = newPartialCache(c.l, c.verifier)
 	for {
 		select {
 		case <-c.done:

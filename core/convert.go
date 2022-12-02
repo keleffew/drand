@@ -22,7 +22,7 @@ func beaconToProto(b *chain.Beacon) *drand.PublicRandResponse {
 	}
 }
 
-func protoToDKGPacket(d *pdkg.Packet, sch crypto.Scheme) (dkg.Packet, error) {
+func protoToDKGPacket(d *pdkg.Packet, sch *crypto.Scheme) (dkg.Packet, error) {
 	switch packet := d.GetBundle().(type) {
 	case *pdkg.Packet_Deal:
 		return protoToDeal(packet.Deal, sch)
@@ -48,7 +48,7 @@ func dkgPacketToProto(p dkg.Packet) (*pdkg.Packet, error) {
 	}
 }
 
-func protoToDeal(d *pdkg.DealBundle, sch crypto.Scheme) (*dkg.DealBundle, error) {
+func protoToDeal(d *pdkg.DealBundle, sch *crypto.Scheme) (*dkg.DealBundle, error) {
 	bundle := new(dkg.DealBundle)
 	bundle.DealerIndex = d.DealerIndex
 	publics := make([]kyber.Point, 0, len(d.Commits))
@@ -90,7 +90,7 @@ func protoToResp(r *pdkg.ResponseBundle) *dkg.ResponseBundle {
 	return resp
 }
 
-func protoToJustif(j *pdkg.JustificationBundle, sch crypto.Scheme) (*dkg.JustificationBundle, error) {
+func protoToJustif(j *pdkg.JustificationBundle, sch *crypto.Scheme) (*dkg.JustificationBundle, error) {
 	just := new(dkg.JustificationBundle)
 	just.DealerIndex = j.DealerIndex
 	just.Justifications = make([]dkg.Justification, len(j.Justifications))

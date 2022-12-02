@@ -316,11 +316,11 @@ type setupReceiver struct {
 	done     bool
 	version  commonutils.Version
 	beaconID string
-	scheme   crypto.Scheme
+	scheme   *crypto.Scheme
 }
 
 func newSetupReceiver(version commonutils.Version, l log.Logger, c clock.Clock,
-	client net.ProtocolClient, in *drand.SetupInfoPacket, sch crypto.Scheme,
+	client net.ProtocolClient, in *drand.SetupInfoPacket, sch *crypto.Scheme,
 ) (*setupReceiver, error) {
 	beaconID := commonutils.GetCanonicalBeaconID(in.GetMetadata().GetBeaconID())
 
@@ -350,7 +350,13 @@ func (r *setupReceiver) fetchLeaderKey() error {
 		return err
 	}
 
-	identity := &drand.Identity{Signature: protoID.Signature, Tls: protoID.Tls, Address: protoID.Address, Key: protoID.Key, Scheme: r.scheme.Name}
+	identity := &drand.Identity{
+		Signature: protoID.Signature,
+		Tls:       protoID.Tls,
+		Address:   protoID.Address,
+		Key:       protoID.Key,
+		Scheme:    r.scheme.Name,
+	}
 	id, err := key.IdentityFromProto(identity)
 	if err != nil {
 		return err

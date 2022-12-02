@@ -81,7 +81,7 @@ func roundToBytes(r int) []byte {
 }
 
 // VerifiableResults creates a set of results that will pass a `chain.Verify` check.
-func VerifiableResults(count int, sch crypto.Scheme) (*chain.Info, []Result) {
+func VerifiableResults(count int, sch *crypto.Scheme) (*chain.Info, []Result) {
 	secret := sch.KeyGroup.Scalar().Pick(random.New())
 	public := sch.KeyGroup.Point().Mul(secret, nil)
 	previous := make([]byte, 32)

@@ -89,7 +89,7 @@ func makeClient(cfg *clientConfig) (Client, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid scheme name in makeClient: %w", err)
 		}
-		opts := Opts{scheme: *sch, strict: cfg.fullVerify}
+		opts := Opts{scheme: sch, strict: cfg.fullVerify}
 
 		nv := newVerifyingClient(source, cfg.previousResult, opts)
 		verifiers = append(verifiers, nv)

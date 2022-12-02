@@ -36,7 +36,7 @@ type Group struct {
 	// Period to use for the beacon randomness generation
 	Period time.Duration
 	// Scheme indicates a set of values the process will use to act in specific ways
-	Scheme crypto.Scheme
+	Scheme *crypto.Scheme
 	// ID is the unique identifier for this group
 	ID string
 	// CatchupPeriod is a delay to insert while in a catchup mode
@@ -225,7 +225,7 @@ func (g *Group) FromTOML(i interface{}) error {
 	if err != nil {
 		return fmt.Errorf("unable to instantiate crypto Scheme name '%s': %w", gt.SchemeID, err)
 	}
-	g.Scheme = *sch
+	g.Scheme = sch
 
 	if g.Threshold < dkg.MinimumT(len(gt.Nodes)) {
 		return errors.New("group file have threshold 0")
@@ -235,7 +235,7 @@ func (g *Group) FromTOML(i interface{}) error {
 
 	if gt.PublicKey != nil {
 		// dist key only if dkg ran
-		g.PublicKey = &DistPublic{Scheme: *sch}
+		g.PublicKey = &DistPublic{Scheme: sch}
 		if err = g.PublicKey.FromTOML(gt.PublicKey); err != nil {
 			return fmt.Errorf("group: unwrapping distributed public key: %w", err)
 		}
@@ -321,7 +321,7 @@ func NewGroup(list []*Identity, threshold int, genesis int64, period, catchupPer
 		GenesisTime:   genesis,
 		Period:        period,
 		CatchupPeriod: catchupPeriod,
-		Scheme:        *sch,
+		Scheme:        sch,
 		ID:            beaconID,
 	}
 }
@@ -332,7 +332,7 @@ func NewGroup(list []*Identity, threshold int, genesis int64, period, catchupPer
 // key.
 // Note: only used in tests
 func LoadGroup(list []*Node, genesis int64, public *DistPublic, period time.Duration,
-	transition int64, sch crypto.Scheme, beaconID string) *Group {
+	transition int64, sch *crypto.Scheme, beaconID string) *Group {
 	return &Group{
 		Nodes:          list,
 		Threshold:      len(public.Coefficients),
@@ -393,8 +393,8 @@ func GroupFromProto(g *proto.GroupPacket) (*Group, error) {
 		return nil, fmt.Errorf("period time is zero")
 	}
 
-	scheme := crypto.SchemeFromName(g.GetSchemeID())
-	if scheme == nil {
+	sch := crypto.SchemeFromName(g.GetSchemeID())
+	if sch == nil {
 		return nil, fmt.Errorf("invalid Scheme name in GroupPacket")
 	}
 
@@ -402,9 +402,9 @@ func GroupFromProto(g *proto.GroupPacket) (*Group, error) {
 	beaconID := g.GetMetadata().GetBeaconID()
 
 	var dist = new(DistPublic)
-	dist.Scheme = *scheme
+	dist.Scheme = sch
 	for _, coeff := range g.DistKey {
-		c := scheme.KeyGroup.Point()
+		c := sch.KeyGroup.Point()
 		if err := c.UnmarshalBinary(coeff); err != nil {
 			return nil, fmt.Errorf("invalid distributed key coefficients:%w", err)
 		}
@@ -418,7 +418,7 @@ func GroupFromProto(g *proto.GroupPacket) (*Group, error) {
 		Nodes:          nodes,
 		GenesisTime:    genesisTime,
 		TransitionTime: int64(g.GetTransitionTime()),
-		Scheme:         *scheme,
+		Scheme:         sch,
 		ID:             beaconID,
 	}
 

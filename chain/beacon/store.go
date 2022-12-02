@@ -59,12 +59,12 @@ func (a *appendStore) Put(ctx context.Context, b *chain.Beacon) error {
 // schemeStore is a store that run different checks depending on what scheme is being used.
 type schemeStore struct {
 	chain.Store
-	sch  crypto.Scheme
+	sch  *crypto.Scheme
 	last *chain.Beacon
 	sync.Mutex
 }
 
-func NewSchemeStore(s chain.Store, sch crypto.Scheme) chain.Store {
+func NewSchemeStore(s chain.Store, sch *crypto.Scheme) chain.Store {
 	last, _ := s.Last(context.Background())
 	return &schemeStore{
 		Store: s,

@@ -72,7 +72,7 @@ func ReadSchemeByEnv() (Scheme, bool) {
 
 // GetSchemeFromEnv allows the user to retrieve the scheme configuration looking by the ID set on an
 // environmental variable. If the scheme is not found, function will panic.
-func GetSchemeFromEnv() crypto.Scheme {
+func GetSchemeFromEnv() *crypto.Scheme {
 	sch, ok := ReadSchemeByEnv()
 	if !ok {
 		panic("Invalid scheme name from env variable $SCHEME_ID")
@@ -83,5 +83,5 @@ func GetSchemeFromEnv() crypto.Scheme {
 		panic("Invalid scheme for crypto")
 	}
 
-	return *ret
+	return ret
 }

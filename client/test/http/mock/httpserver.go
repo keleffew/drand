@@ -16,7 +16,7 @@ import (
 )
 
 // NewMockHTTPPublicServer creates a mock drand HTTP server for testing.
-func NewMockHTTPPublicServer(t *testing.T, badSecondRound bool, sch crypto.Scheme) (string, *chain.Info, context.CancelFunc, func(bool)) {
+func NewMockHTTPPublicServer(t *testing.T, badSecondRound bool, sch *crypto.Scheme) (string, *chain.Info, context.CancelFunc, func(bool)) {
 	t.Helper()
 
 	server := mock.NewMockServer(badSecondRound, sch)

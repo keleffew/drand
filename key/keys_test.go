@@ -150,14 +150,14 @@ func BatchIdentities(n int) ([]*Pair, *Group) {
 			Identity: privs[i].Public,
 		}
 	}
-	scheme := scheme.GetSchemeFromEnv()
-	fakeDistKey := scheme.KeyGroup.Point().Pick(random.New())
-	distKey := &DistPublic{Coefficients: []kyber.Point{fakeDistKey}, Scheme: scheme}
+	sch := scheme.GetSchemeFromEnv()
+	fakeDistKey := sch.KeyGroup.Point().Pick(random.New())
+	distKey := &DistPublic{Coefficients: []kyber.Point{fakeDistKey}, Scheme: sch}
 	group := &Group{
 		Threshold: DefaultThreshold(n),
 		Nodes:     pubs,
 		PublicKey: distKey,
-		Scheme:    scheme,
+		Scheme:    sch,
 	}
 	return privs, group
 }

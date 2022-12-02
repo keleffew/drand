@@ -56,13 +56,13 @@ func (t *testBeaconServer) SyncChain(req *drand.SyncRequest, p drand.Protocol_Sy
 	return SyncChain(t.h.l, t.h.chain, req, p)
 }
 
-func dkgShares(_ *testing.T, n, t int, scheme crypto.Scheme) ([]*key.Share, []kyber.Point) {
+func dkgShares(_ *testing.T, n, t int, sch *crypto.Scheme) ([]*key.Share, []kyber.Point) {
 	var priPoly *share.PriPoly
 	var pubPoly *share.PubPoly
 	var err error
 	for i := 0; i < n; i++ {
-		pri := share.NewPriPoly(scheme.KeyGroup, t, scheme.KeyGroup.Scalar().Pick(random.New()), random.New())
-		pub := pri.Commit(scheme.KeyGroup.Point().Base())
+		pri := share.NewPriPoly(sch.KeyGroup, t, sch.KeyGroup.Scalar().Pick(random.New()), random.New())
+		pub := pri.Commit(sch.KeyGroup.Point().Base())
 		if priPoly == nil {
 			priPoly = pri
 			pubPoly = pub
@@ -78,7 +78,7 @@ func dkgShares(_ *testing.T, n, t int, scheme crypto.Scheme) ([]*key.Share, []ky
 		}
 	}
 	shares := priPoly.Shares(n)
-	secret, err := share.RecoverSecret(scheme.KeyGroup, shares, t, n)
+	secret, err := share.RecoverSecret(sch.KeyGroup, shares, t, n)
 	if err != nil {
 		panic(err)
 	}
@@ -91,17 +91,17 @@ func dkgShares(_ *testing.T, n, t int, scheme crypto.Scheme) ([]*key.Share, []ky
 	_, commits := pubPoly.Info()
 	dkgShares := make([]*key.Share, n)
 	for i := 0; i < n; i++ {
-		sigs[i], err = scheme.ThresholdScheme.Sign(shares[i], msg)
+		sigs[i], err = sch.ThresholdScheme.Sign(shares[i], msg)
 		if err != nil {
 			panic(err)
 		}
-		dkgShares[i] = &key.Share{DistKeyShare: dkg.DistKeyShare{Share: shares[i], Commits: commits}, Scheme: scheme}
+		dkgShares[i] = &key.Share{DistKeyShare: dkg.DistKeyShare{Share: shares[i], Commits: commits}, Scheme: sch}
 	}
-	sig, err := scheme.ThresholdScheme.Recover(pubPoly, msg, sigs, t, n)
+	sig, err := sch.ThresholdScheme.Recover(pubPoly, msg, sigs, t, n)
 	if err != nil {
 		panic(err)
 	}
-	if err = scheme.ThresholdScheme.VerifyRecovered(pubPoly.Commit(), msg, sig); err != nil {
+	if err = sch.ThresholdScheme.VerifyRecovered(pubPoly.Commit(), msg, sig); err != nil {
 		panic(err)
 	}
 	return dkgShares, commits
@@ -132,10 +132,10 @@ type BeaconTest struct {
 	nodes    map[int]*node
 	time     clock.FakeClock
 	prefix   string
-	scheme   crypto.Scheme
+	scheme   *crypto.Scheme
 }
 
-func NewBeaconTest(t *testing.T, n, thr int, period time.Duration, genesisTime int64, sch crypto.Scheme, beaconID string) *BeaconTest {
+func NewBeaconTest(t *testing.T, n, thr int, period time.Duration, genesisTime int64, sch *crypto.Scheme, beaconID string) *BeaconTest {
 	prefix := t.TempDir()
 	paths := createBoltStores(prefix, n)
 	shares, commits := dkgShares(t, n, thr, sch)
@@ -603,7 +603,7 @@ func TestBeaconThreshold(t *testing.T) {
 
 func TestProcessingPartialBeaconWithNonExistentIndexDoesntSegfault(t *testing.T) {
 	sch := crypto.SchemeFromName(scheme.DefaultSchemeID)
-	bt := NewBeaconTest(t, 3, 2, 30*time.Second, 0, *sch, "default")
+	bt := NewBeaconTest(t, 3, 2, 30*time.Second, 0, sch, "default")
 
 	packet := drand.PartialBeaconPacket{
 		Round:       1,

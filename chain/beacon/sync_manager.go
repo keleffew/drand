@@ -86,7 +86,7 @@ func NewSyncManager(c *SyncConfig) *SyncManager {
 		info:          c.Info,
 		client:        c.Client,
 		period:        c.Info.Period,
-		verifier:      verifier.NewVerifier(*sch),
+		verifier:      verifier.NewVerifier(sch),
 		nodeAddr:      c.NodeAddr,
 		factor:        syncExpiryFactor,
 		newReq:        make(chan requestInfo, syncQueueRequest),

@@ -19,10 +19,10 @@ type partialCache struct {
 	rounds map[string]*roundCache
 	rcvd   map[int][]string
 	l      log.Logger
-	verif  verifier.Verifier
+	verif  *verifier.Verifier
 }
 
-func newPartialCache(l log.Logger, v verifier.Verifier) *partialCache {
+func newPartialCache(l log.Logger, v *verifier.Verifier) *partialCache {
 	return &partialCache{
 		rounds: make(map[string]*roundCache),
 		rcvd:   make(map[int][]string),
@@ -117,10 +117,10 @@ type roundCache struct {
 	prev  []byte
 	id    string
 	sigs  map[int][]byte
-	verif verifier.Verifier
+	verif *verifier.Verifier
 }
 
-func newRoundCache(id string, p *drand.PartialBeaconPacket, v verifier.Verifier) *roundCache {
+func newRoundCache(id string, p *drand.PartialBeaconPacket, v *verifier.Verifier) *roundCache {
 	return &roundCache{
 		round: p.GetRound(),
 		prev:  p.GetPreviousSig(),

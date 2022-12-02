@@ -61,7 +61,7 @@ type echoBroadcast struct {
 	respCh chan dkg.ResponseBundle
 	justCh chan dkg.JustificationBundle
 	verif  verifyPacket
-	scheme crypto.Scheme
+	scheme *crypto.Scheme
 }
 
 type packet = dkg.Packet
@@ -73,7 +73,7 @@ var _ Broadcast = (*echoBroadcast)(nil)
 type verifyPacket func(packet) error
 
 func newEchoBroadcast(l log.Logger, version commonutils.Version, beaconID string,
-	c net.ProtocolClient, own string, to []*key.Node, v verifyPacket, s crypto.Scheme) *echoBroadcast {
+	c net.ProtocolClient, own string, to []*key.Node, v verifyPacket, s *crypto.Scheme) *echoBroadcast {
 	return &echoBroadcast{
 		l:          l.Named("echoBroadcast"),
 		version:    version,

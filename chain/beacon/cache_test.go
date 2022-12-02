@@ -3,7 +3,6 @@ package beacon
 import (
 	"testing"
 
-	"github.com/drand/drand/crypto"
 	"github.com/drand/drand/crypto/verifier"
 
 	"github.com/stretchr/testify/require"
@@ -19,15 +18,15 @@ var fakeKey = key.NewKeyPair("127.0.0.1:8080")
 
 func generatePartial(idx int, round uint64, prev []byte) *drand.PartialBeaconPacket {
 	sch := scheme.GetSchemeFromEnv()
-	verifier := verifier.NewVerifier(sch)
+	verif := verifier.NewVerifier(sch)
 
 	sh := &share.PriShare{
 		I: idx,
 		V: fakeKey.Key,
 	}
 
-	msg := verifier.DigestMessage(round, prev)
-	sig, _ := verifier.ThresholdScheme.Sign(sh, msg)
+	msg := verif.DigestMessage(round, prev)
+	sig, _ := verif.ThresholdScheme.Sign(sh, msg)
 	return &drand.PartialBeaconPacket{
 		Round:       round,
 		PreviousSig: prev,
@@ -41,16 +40,16 @@ func TestCacheRound(t *testing.T) {
 	prev := []byte("yesterday was another day")
 
 	sch := scheme.GetSchemeFromEnv()
-	verifier := verifier.NewVerifier(sch)
+	verif := verifier.NewVerifier(sch)
 
-	msg := verifier.DigestMessage(round, prev)
+	msg := verif.DigestMessage(round, prev)
 	partial := generatePartial(1, round, prev)
 	p2 := generatePartial(2, round, prev)
-	cache := newRoundCache(id, partial, *verifier)
+	cache := newRoundCache(id, partial, verif)
 	require.True(t, cache.append(partial))
 	require.False(t, cache.append(partial))
 	require.Equal(t, 1, cache.Len())
-	require.Equal(t, msg, verifier.DigestMessage(cache.round, cache.prev))
+	require.Equal(t, msg, verif.DigestMessage(cache.round, cache.prev))
 
 	require.True(t, cache.append(p2))
 	require.Equal(t, 2, cache.Len())
@@ -63,8 +62,9 @@ func TestCacheRound(t *testing.T) {
 
 func TestCachePartial(t *testing.T) {
 	l := log.DefaultLogger()
-	v := verifier.NewVerifier(*crypto.SchemeFromName(scheme.DefaultSchemeID))
-	cache := newPartialCache(l, *v)
+	sch := scheme.GetSchemeFromEnv()
+	v := verifier.NewVerifier(sch)
+	cache := newPartialCache(l, v)
 	var round uint64 = 64
 	prev := []byte("yesterday was another day")
 

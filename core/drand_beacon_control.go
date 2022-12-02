@@ -1185,9 +1185,9 @@ func (bp *BeaconProcess) StartFollowChain(req *drand.StartSyncRequest, stream dr
 		return fmt.Errorf("unable to insert genesis block: %w", err)
 	}
 
-	// add scheme store to handle scheme configuration on beacon storing process correctly
-	scheme := crypto.SchemeFromName(info.GetSchemeName())
-	ss := beacon.NewSchemeStore(store, *scheme)
+	// add sch store to handle sch configuration on beacon storing process correctly
+	sch := crypto.SchemeFromName(info.GetSchemeName())
+	ss := beacon.NewSchemeStore(store, sch)
 
 	// register callback to notify client of progress
 	cbStore := beacon.NewCallbackStore(ss)

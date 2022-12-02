@@ -20,8 +20,8 @@ type CryptoSafe interface {
 // beacons and to sign new partial beacons (it implements CryptoSafe interface).
 // Vault is thread safe when using the methods.
 type Vault struct {
-	sync.Mutex
-	crypto.Scheme
+	mu sync.RWMutex
+	*crypto.Scheme
 	// current share of the node
 	share *key.Share
 	// public polynomial to verify a partial beacon
@@ -32,7 +32,7 @@ type Vault struct {
 	group *key.Group
 }
 
-func NewVault(currentGroup *key.Group, ks *key.Share, sch crypto.Scheme) *Vault {
+func NewVault(currentGroup *key.Group, ks *key.Share, sch *crypto.Scheme) *Vault {
 	return &Vault{
 		Scheme: sch,
 		chain:  chain.NewChainInfo(currentGroup),
@@ -44,40 +44,40 @@ func NewVault(currentGroup *key.Group, ks *key.Share, sch crypto.Scheme) *Vault 
 
 // GetGroup returns the current group
 func (c *Vault) GetGroup() *key.Group {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.group
 }
 
 func (c *Vault) GetPub() *share.PubPoly {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.pub
 }
 
 func (c *Vault) GetInfo() *chain.Info {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.chain
 }
 
 // SignPartial implemements the CryptoSafe interface
 func (c *Vault) SignPartial(msg []byte) ([]byte, error) {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.Scheme.ThresholdScheme.Sign(c.share.PrivateShare(), msg)
 }
 
 // Index returns the index of the share
 func (c *Vault) Index() int {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.share.Share.I
 }
 
 func (c *Vault) SetInfo(newGroup *key.Group, ks *key.Share) {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.share = ks
 	c.group = newGroup
 	c.pub = newGroup.PublicKey.PubPoly()

@@ -54,6 +54,7 @@ func (s *schnorrSuite) RandomStream() cipher.Stream {
 	return random.New()
 }
 
+//nolint:dupl
 func NewPedersenBLSChained() (cs *Scheme) {
 	var Pairing = bls.NewBLS12381Suite()
 	var KeyGroup = Pairing.G1()
@@ -76,6 +77,7 @@ func NewPedersenBLSChained() (cs *Scheme) {
 	}
 }
 
+//nolint:dupl
 func NewPedersenBLSUnchained() (cs *Scheme) {
 	var Pairing = bls.NewBLS12381Suite()
 	var KeyGroup = Pairing.G2()

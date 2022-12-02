@@ -179,10 +179,10 @@ type Data struct {
 	Genesis           int64
 	Period            time.Duration
 	BadSecondRound    bool
-	Scheme            crypto.Scheme
+	Scheme            *crypto.Scheme
 }
 
-func generateMockData(sch crypto.Scheme) *Data {
+func generateMockData(sch *crypto.Scheme) *Data {
 	secret := sch.KeyGroup.Scalar().Pick(random.New())
 	public := sch.KeyGroup.Point().Mul(secret, nil)
 	var previous [32]byte
@@ -256,7 +256,7 @@ func nextMockData(d *Data) *Data {
 }
 
 // NewMockGRPCPublicServer creates a listener that provides valid single-node randomness.
-func NewMockGRPCPublicServer(bind string, badSecondRound bool, sch crypto.Scheme) (net.Listener, net.Service) {
+func NewMockGRPCPublicServer(bind string, badSecondRound bool, sch *crypto.Scheme) (net.Listener, net.Service) {
 	d := generateMockData(sch)
 	testValid(d)
 
@@ -273,7 +273,7 @@ func NewMockGRPCPublicServer(bind string, badSecondRound bool, sch crypto.Scheme
 }
 
 // NewMockServer creates a server interface not bound to a newtork port
-func NewMockServer(badSecondRound bool, sch crypto.Scheme) net.Service {
+func NewMockServer(badSecondRound bool, sch *crypto.Scheme) net.Service {
 	d := generateMockData(sch)
 	testValid(d)
 
@@ -300,7 +300,7 @@ func roundToBytes(r int) []byte {
 }
 
 // NewMockBeacon provides a random beacon and the chain it validates against
-func NewMockBeacon(sch crypto.Scheme) (*drand.ChainInfoPacket, *drand.PublicRandResponse) {
+func NewMockBeacon(sch *crypto.Scheme) (*drand.ChainInfoPacket, *drand.PublicRandResponse) {
 	d := generateMockData(sch)
 	s := newMockServer(d)
 	c, _ := s.ChainInfo(context.Background(), nil)

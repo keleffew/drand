@@ -35,7 +35,7 @@ func NewChainInfo(g *key.Group) *Info {
 	return &Info{
 		ID:          g.ID,
 		Period:      g.Period,
-		Scheme:      g.Scheme.Name,
+		Scheme:      schemeName,
 		PublicKey:   g.PublicKey.Key(),
 		GenesisTime: g.GenesisTime,
 		GenesisSeed: g.GetGenesisSeed(),
