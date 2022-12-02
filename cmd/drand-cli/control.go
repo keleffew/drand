@@ -718,7 +718,9 @@ func selfSign(c *cli.Context) error {
 		return nil
 	}
 
-	pair.SelfSign()
+	if err := pair.SelfSign(); err != nil {
+		return fmt.Errorf("failed to self-sign keypair for beacon id [%s]: %w", beaconID, err)
+	}
 	if err := fs.SaveKeyPair(pair); err != nil {
 		return fmt.Errorf("beacon id [%s] - saving identity: %w", beaconID, err)
 	}

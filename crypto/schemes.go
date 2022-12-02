@@ -13,6 +13,7 @@ import (
 	// rogue public-key attack and the new version of the protocol should be used to make sure a
 	// signature aggregate cannot be verified by a forged key. You can find the protocol in kyber/sign/bdn.
 	// Note that only the aggregation is broken against the attack and a later version will merge bls and asmbls.
+	//nolint:staticcheck
 	signBls "github.com/drand/kyber/sign/bls"
 	"github.com/drand/kyber/sign/schnorr"
 	"github.com/drand/kyber/sign/tbls"
@@ -80,6 +81,29 @@ func NewPedersenBLSChained() (cs *Scheme) {
 //nolint:dupl
 func NewPedersenBLSUnchained() (cs *Scheme) {
 	var Pairing = bls.NewBLS12381Suite()
+	var KeyGroup = Pairing.G1()
+	var SigGroup = Pairing.G2()
+	var ThresholdScheme = tbls.NewThresholdSchemeOnG2(Pairing)
+	var AuthScheme = signBls.NewSchemeOnG2(Pairing)
+	var DKGAuthScheme = schnorr.NewScheme(&schnorrSuite{KeyGroup})
+	var HashFunc = func() hash.Hash { h, _ := blake2b.New256(nil); return h }
+
+	return &Scheme{
+		Name:                     "pedersen-bls-unchained",
+		IsPreviousSigSignificant: false,
+		SigGroup:                 SigGroup,
+		KeyGroup:                 KeyGroup,
+		ThresholdScheme:          ThresholdScheme,
+		AuthScheme:               AuthScheme,
+		DKGAuthScheme:            DKGAuthScheme,
+		Pairing:                  Pairing,
+		HashFunc:                 HashFunc,
+	}
+}
+
+//nolint:dupl
+func NewPedersenBLSUnchainedSwapped() (cs *Scheme) {
+	var Pairing = bls.NewBLS12381Suite()
 	var KeyGroup = Pairing.G2()
 	var SigGroup = Pairing.G1()
 	var ThresholdScheme = tbls.NewThresholdSchemeOnG1(Pairing)
@@ -88,7 +112,7 @@ func NewPedersenBLSUnchained() (cs *Scheme) {
 	var HashFunc = func() hash.Hash { h, _ := blake2b.New256(nil); return h }
 
 	return &Scheme{
-		Name:                     "pedersen-bls-unchained",
+		Name:                     "pedersen-bls-unchained-swapped",
 		IsPreviousSigSignificant: false,
 		SigGroup:                 SigGroup,
 		KeyGroup:                 KeyGroup,
@@ -106,6 +130,8 @@ func SchemeFromName(schemeName string) (cs *Scheme) {
 		return NewPedersenBLSChained()
 	case "pedersen-bls-unchained":
 		return NewPedersenBLSUnchained()
+	case "bls-unchained-shortsig":
+		return NewPedersenBLSUnchainedSwapped()
 	default:
 		return nil
 	}

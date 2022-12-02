@@ -334,7 +334,8 @@ func TestStartWithoutGroup(t *testing.T) {
 
 	ctrlPort1, ctrlPort2, metricsPort := test.FreePort(), test.FreePort(), test.FreePort()
 
-	priv := key.NewKeyPair(addr)
+	priv, err := key.NewKeyPair(addr)
+	require.NoError(t, err)
 	require.NoError(t, key.Save(pubPath, priv.Public, false))
 
 	config := core.NewConfig(core.WithConfigFolder(tmpPath))
@@ -369,7 +370,7 @@ func TestStartWithoutGroup(t *testing.T) {
 	require.Error(t, CLI().Run(initDKGArgs))
 
 	t.Log("--- DRAND STOP --- (failing instance)")
-	err := CLI().Run([]string{"drand", "stop", "--control", ctrlPort1})
+	err = CLI().Run([]string{"drand", "stop", "--control", ctrlPort1})
 	require.NoError(t, err)
 
 	t.Log(" --- DRAND GROUP ---")
@@ -572,12 +573,13 @@ func TestClientTLS(t *testing.T) {
 	ctrlPort := test.FreePort()
 	metricsPort := test.FreePort()
 
-	priv := key.NewTLSKeyPair(addr)
+	priv, err := key.NewTLSKeyPair(addr)
+	require.NoError(t, err)
 	require.NoError(t, key.Save(pubPath, priv.Public, false))
 
 	config := core.NewConfig(core.WithConfigFolder(tmpPath))
 	fileStore := key.NewFileStore(config.ConfigFolderMB(), beaconID)
-	err := fileStore.SaveKeyPair(priv)
+	err = fileStore.SaveKeyPair(priv)
 	require.NoError(t, err)
 
 	if httpscerts.Check(certPath, keyPath) != nil {
@@ -1014,7 +1016,8 @@ func launchDrandInstances(t *testing.T, n int) []*drandInstance {
 
 		// generate key so it loads
 		// XXX let's remove this requirement - no need for longterm keys
-		priv := key.NewTLSKeyPair(addr)
+		priv, err := key.NewTLSKeyPair(addr)
+		require.NoError(t, err)
 		require.NoError(t, key.Save(pubPath, priv.Public, false))
 		config := core.NewConfig(core.WithConfigFolder(nodePath))
 		fileStore := key.NewFileStore(config.ConfigFolderMB(), beaconID)

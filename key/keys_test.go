@@ -20,7 +20,8 @@ import (
 const testAddr = "127.0.0.1:80"
 
 func TestKeyPublic(t *testing.T) {
-	kp := NewTLSKeyPair(testAddr)
+	kp, err := NewTLSKeyPair(testAddr)
+	require.NoError(t, err)
 	ptoml := kp.Public.TOML().(*PublicTOML)
 	require.Equal(t, kp.Public.Addr, ptoml.Address)
 	require.Equal(t, kp.Public.TLS, ptoml.TLS)
@@ -31,7 +32,7 @@ func TestKeyPublic(t *testing.T) {
 
 	p2 := new(Identity)
 	p2toml := new(PublicTOML)
-	_, err := toml.NewDecoder(&writer).Decode(p2toml)
+	_, err = toml.NewDecoder(&writer).Decode(p2toml)
 	require.NoError(t, err)
 	require.NoError(t, p2.FromTOML(p2toml))
 
@@ -41,7 +42,8 @@ func TestKeyPublic(t *testing.T) {
 }
 
 func TestKeySignature(t *testing.T) {
-	kp := NewTLSKeyPair(testAddr)
+	kp, err := NewTLSKeyPair(testAddr)
+	require.NoError(t, err)
 	validSig := kp.Public.Signature
 	require.NoError(t, kp.Public.ValidSignature())
 	kp.Public.Signature = []byte("no justice, no peace")
@@ -144,7 +146,7 @@ func BatchIdentities(n int) ([]*Pair, *Group) {
 	for i := 0; i < n; i++ {
 		port := strconv.Itoa(startPort + i)
 		addr := startAddr + port
-		privs[i] = NewTLSKeyPair(addr)
+		privs[i], _ = NewTLSKeyPair(addr)
 		pubs[i] = &Node{
 			Index:    uint32(i),
 			Identity: privs[i].Public,

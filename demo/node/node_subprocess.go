@@ -109,7 +109,10 @@ func (n *NodeProc) setup() {
 	}
 
 	// call drand binary
-	n.priv = key.NewKeyPair(n.privAddr)
+	n.priv, err = key.NewKeyPair(n.privAddr)
+	if err != nil {
+		panic(err)
+	}
 
 	args := []string{"generate-keypair", "--folder", n.base, "--id", n.beaconID}
 

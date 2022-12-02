@@ -92,7 +92,7 @@ func (p *Pair) SelfSign() error {
 
 // NewKeyPair returns a freshly created private / public key pair. The group is
 // decided by the group variable by default.
-func NewKeyPair(address string) *Pair {
+func NewKeyPair(address string) (*Pair, error) {
 	sch := scheme.GetSchemeFromEnv()
 
 	key := sch.KeyGroup.Scalar().Pick(random.New())
@@ -107,17 +107,21 @@ func NewKeyPair(address string) *Pair {
 		Key:    key,
 		Public: pub,
 	}
-	p.SelfSign()
-	return p
+
+	err := p.SelfSign()
+	return p, err
 }
 
 // NewTLSKeyPair returns a fresh keypair associated with the given address
 // reachable over TLS.
-func NewTLSKeyPair(address string) *Pair {
-	kp := NewKeyPair(address)
+func NewTLSKeyPair(address string) (*Pair, error) {
+	kp, err := NewKeyPair(address)
+	if err != nil {
+		return nil, err
+	}
 	kp.Public.TLS = true
-	kp.SelfSign()
-	return kp
+	err = kp.SelfSign()
+	return kp, err
 }
 
 // PairTOML is the TOML-able version of a private key

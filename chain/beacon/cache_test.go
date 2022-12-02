@@ -14,7 +14,7 @@ import (
 	"github.com/drand/kyber/share"
 )
 
-var fakeKey = key.NewKeyPair("127.0.0.1:8080")
+var fakeKey, _ = key.NewKeyPair("127.0.0.1:8080")
 
 func generatePartial(idx int, round uint64, prev []byte) *drand.PartialBeaconPacket {
 	sch := scheme.GetSchemeFromEnv()

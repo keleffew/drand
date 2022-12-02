@@ -744,13 +744,13 @@ func keygenCmd(c *cli.Context) (err error) {
 	var priv *key.Pair
 	if c.Bool(insecureFlag.Name) {
 		fmt.Println("Generating private / public key pair without TLS.")
-		priv = key.NewKeyPair(addr)
+		priv, err = key.NewKeyPair(addr)
 		if err != nil {
 			return err
 		}
 	} else {
 		fmt.Println("Generating private / public key pair with TLS indication")
-		priv = key.NewTLSKeyPair(addr)
+		priv, _ = key.NewTLSKeyPair(addr)
 	}
 
 	config := contextToConfig(c)

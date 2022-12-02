@@ -17,9 +17,13 @@ import (
 func newIds(n int) []*Node {
 	ids := make([]*Node, n)
 	for i := 0; i < n; i++ {
+		key, err := NewKeyPair("127.0.0.1:3000")
+		if err != nil {
+			panic(err)
+		}
 		ids[i] = &Node{
 			Index:    uint32(i),
-			Identity: NewKeyPair("127.0.0.1:3000").Public,
+			Identity: key.Public,
 		}
 	}
 	return ids

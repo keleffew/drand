@@ -120,7 +120,7 @@ func GenerateIDs(n int) []*key.Pair {
 	keys := make([]*key.Pair, n)
 	addrs := Addresses(n)
 	for i := range addrs {
-		priv := key.NewKeyPair(addrs[i])
+		priv, _ := key.NewKeyPair(addrs[i])
 		keys[i] = priv
 	}
 	return keys
