@@ -544,12 +544,6 @@ var appCommands = []*cli.Command{
 		Flags: toArray(folderFlag, controlFlag),
 		Subcommands: []*cli.Command{
 			{
-				Name:   "share",
-				Usage:  "shows the private share\n",
-				Flags:  toArray(controlFlag, beaconIDFlag),
-				Action: showShareCmd,
-			},
-			{
 				Name: "group",
 				Usage: "shows the current group.toml used. The group.toml " +
 					"may contain the distributed public key if the DKG has been " +

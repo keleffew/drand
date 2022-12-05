@@ -629,20 +629,6 @@ func showPublicCmd(c *cli.Context) error {
 	return printJSON(resp)
 }
 
-func showShareCmd(c *cli.Context) error {
-	client, err := controlClient(c)
-	if err != nil {
-		return err
-	}
-
-	beaconID := getBeaconID(c)
-	resp, err := client.Share(beaconID)
-	if err != nil {
-		return fmt.Errorf("could not request drand.share: %w", err)
-	}
-	return printJSON(resp)
-}
-
 func backupDBCmd(c *cli.Context) error {
 	client, err := controlClient(c)
 	if err != nil {
