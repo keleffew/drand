@@ -60,11 +60,11 @@ func TestKeySignature(t *testing.T) {
 	require.Error(t, id2.ValidSignature(), id2.Signature)
 
 	protoID := kp.Public.ToProto()
-	decodedID, err := IdentityFromProto(protoID)
+	decodedID, err := IdentityFromProto(protoID, nil)
 	require.NoError(t, err)
 	require.NoError(t, decodedID.ValidSignature())
 	protoID.Signature = []byte("I am insane. And you are my insanity")
-	decodedID, err = IdentityFromProto(protoID)
+	decodedID, err = IdentityFromProto(protoID, nil)
 	require.NoError(t, err)
 	require.Error(t, decodedID.ValidSignature())
 }

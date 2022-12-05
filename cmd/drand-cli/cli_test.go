@@ -483,7 +483,7 @@ func testStartedDrandFunctional(t *testing.T, ctrlPort, rootPath, address string
 	require.NoError(t, err)
 	os.Stdin = r
 	require.NoError(t, CLI().Run(resetCmd))
-	_, err = fileStore.LoadShare()
+	_, err = fileStore.LoadShare(nil)
 	require.Error(t, err)
 	_, err = fileStore.LoadGroup()
 	require.Error(t, err)

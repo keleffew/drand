@@ -16,7 +16,6 @@ import (
 
 	"github.com/drand/drand/chain"
 	commonutils "github.com/drand/drand/common"
-	common2 "github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/key"
 	"github.com/drand/drand/log"
 	"github.com/drand/drand/net"
@@ -53,7 +52,7 @@ type setupManager struct {
 	catchupPeriod time.Duration
 	beaconPeriod  time.Duration
 	beaconID      string
-	scheme        common2.Scheme
+	scheme        *crypto.Scheme
 	dkgTimeout    time.Duration
 	clock         clock.Clock
 	leaderKey     *key.Identity
@@ -77,7 +76,7 @@ type setupConfig struct {
 	beaconPeriod  uint32
 	catchupPeriod uint32
 	beaconID      string
-	schemeID      string
+	scheme        *crypto.Scheme
 	info          *drand.SetupInfoPacket
 }
 
@@ -97,18 +96,13 @@ func newDKGSetup(c *setupConfig) (*setupManager, error) {
 		offset = DefaultGenesisOffset
 	}
 
-	sch, ok := common2.GetSchemeByID(c.schemeID)
-	if !ok {
-		return nil, fmt.Errorf("scheme id received is not valid")
-	}
-
 	sm := &setupManager{
 		expected:      n,
 		thr:           thr,
 		beaconOffset:  offset,
 		beaconPeriod:  time.Duration(c.beaconPeriod) * time.Second,
 		catchupPeriod: time.Duration(c.catchupPeriod) * time.Second,
-		scheme:        sch,
+		scheme:        c.scheme,
 		beaconID:      c.beaconID,
 		dkgTimeout:    dkgTimeout,
 		l:             c.l,
@@ -132,7 +126,6 @@ func newReshareSetup(
 ) (*setupManager, error) {
 	// period isn't included for resharing since we keep the same period
 	beaconPeriod := uint32(oldGroup.Period.Seconds())
-	schemeID := oldGroup.Scheme.Name
 	// we know it was properly set and verified earlier
 	beaconID := oldGroup.ID
 
@@ -145,7 +138,7 @@ func newReshareSetup(
 		l.Named("ResharingDKGSetup"),
 		c, leaderKey, beaconPeriod,
 		catchupPeriod, beaconID,
-		schemeID, in.GetInfo(),
+		oldGroup.Scheme, in.GetInfo(),
 	})
 	if err != nil {
 		return nil, err
@@ -184,7 +177,7 @@ func (s *setupManager) ReceivedKey(addr string, p *drand.SignalDKGPacket) error 
 		}
 	}
 
-	newID, err := key.IdentityFromProto(p.GetNode())
+	newID, err := key.IdentityFromProto(p.GetNode(), s.scheme)
 	if err != nil {
 		s.l.Errorw("error decoding in ReceivedKey", "id", addr, "err", err)
 		return fmt.Errorf("invalid id: %w", err)
@@ -260,14 +253,14 @@ func (s *setupManager) createAndSend(keys []*key.Identity) {
 		// round the genesis time to a period modulo
 		ps := int64(s.beaconPeriod.Seconds())
 		genesis += (ps - genesis%ps)
-		group = key.NewGroup(keys, s.thr, genesis, s.beaconPeriod, s.catchupPeriod, s.scheme.ID, s.beaconID)
+		group = key.NewGroup(keys, s.thr, genesis, s.beaconPeriod, s.catchupPeriod, s.scheme.Name, s.beaconID)
 	} else {
 		genesis := s.oldGroup.GenesisTime
 		atLeast := s.clock.Now().Add(totalDKG).Unix()
 		// transitioning to the next round time that is at least
 		// "DefaultResharingOffset" time from now.
 		_, transition := chain.NextRound(atLeast, s.beaconPeriod, s.oldGroup.GenesisTime)
-		group = key.NewGroup(keys, s.thr, genesis, s.beaconPeriod, s.catchupPeriod, s.scheme.ID, s.beaconID)
+		group = key.NewGroup(keys, s.thr, genesis, s.beaconPeriod, s.catchupPeriod, s.scheme.Name, s.beaconID)
 		group.TransitionTime = transition
 		group.GenesisSeed = s.oldGroup.GetGenesisSeed()
 	}
@@ -357,7 +350,7 @@ func (r *setupReceiver) fetchLeaderKey() error {
 		Key:       protoID.Key,
 		Scheme:    r.scheme.Name,
 	}
-	id, err := key.IdentityFromProto(identity)
+	id, err := key.IdentityFromProto(identity, r.scheme)
 	if err != nil {
 		return err
 	}

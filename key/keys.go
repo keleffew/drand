@@ -235,14 +235,20 @@ func (b ByKey) Less(i, j int) bool {
 
 // IdentityFromProto creates an identity from its wire representation and
 // verifies it validity.
-func IdentityFromProto(n *proto.Identity) (*Identity, error) {
+func IdentityFromProto(n *proto.Identity, targetScheme *crypto.Scheme) (*Identity, error) {
 	_, _, err := net.SplitHostPort(n.GetAddress())
 	if err != nil {
 		return nil, err
 	}
 	sch := crypto.SchemeFromName(n.GetScheme())
 	if sch == nil {
-		return nil, fmt.Errorf("invalid Scheme name in IdentityFromProto: %s", n.GetScheme())
+		if targetScheme == nil {
+			return nil, fmt.Errorf("invalid Scheme name in IdentityFromProto: %s", n.GetScheme())
+		}
+		sch = targetScheme
+	}
+	if targetScheme != nil && sch.Name != targetScheme.Name {
+		return nil, fmt.Errorf("mismatch in Scheme name in IdentityFromProto: %s!=%s", n.GetScheme(), targetScheme.Name)
 	}
 	public := sch.KeyGroup.Point()
 	if err := public.UnmarshalBinary(n.GetKey()); err != nil {
@@ -315,8 +321,11 @@ func (s *Share) FromTOML(i interface{}) error {
 		return errors.New("invalid struct received for share")
 	}
 	sch := crypto.SchemeFromName(t.SchemeName)
-	if sch == nil {
+	if sch == nil && s.Scheme == nil {
 		return fmt.Errorf("invalid scheme name in Share FromTOML: '%s'", t.SchemeName)
+	}
+	if sch != nil && s.Scheme != nil && sch.Name != s.Scheme.Name {
+		return fmt.Errorf("mismatch in scheme name in Share FromTOML: '%s'!='%s'", t.SchemeName, s.Scheme.Name)
 	}
 	s.Scheme = sch
 	s.Commits = make([]kyber.Point, len(t.Commits))

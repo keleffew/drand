@@ -98,14 +98,11 @@ func (dd *DrandDaemon) ListSchemes(ctx context.Context, in *drand.ListSchemesReq
 	return &drand.ListSchemesResponse{Ids: scheme.ListSchemes(), Metadata: metadata}, nil
 }
 
-// Share is a functionality of Control Service defined in protobuf/control that requests the private share of the drand node running locally
-func (dd *DrandDaemon) Share(ctx context.Context, in *drand.ShareRequest) (*drand.ShareResponse, error) {
-	bp, err := dd.getBeaconProcessFromRequest(in.GetMetadata())
-	if err != nil {
-		return nil, err
-	}
-
-	return bp.Share(ctx, in)
+// Share is a functionality of Control Service defined in protobuf/control that requests the private share of
+// the drand node running locally
+// Deprecated: no need to export the secret share to a remote client.
+func (dd *DrandDaemon) Share(_ context.Context, _ *drand.ShareRequest) (*drand.ShareResponse, error) {
+	return nil, fmt.Errorf("deprecated function: exporting the share to a client isn't supported now")
 }
 
 // PublicKey is a functionality of Control Service defined in protobuf/control

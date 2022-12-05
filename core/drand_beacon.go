@@ -126,7 +126,7 @@ func (bp *BeaconProcess) Load() (bool, error) {
 	checkGroup(bp.log, bp.group)
 	bp.state.Unlock()
 
-	bp.share, err = bp.store.LoadShare()
+	bp.share, err = bp.store.LoadShare(bp.group.Scheme)
 	if err != nil {
 		return false, err
 	}
@@ -375,8 +375,8 @@ func (bp *BeaconProcess) StopBeacon() {
 }
 
 func (bp *BeaconProcess) isFreshRun() bool {
-	_, errG := bp.store.LoadGroup()
-	_, errS := bp.store.LoadShare()
+	grp, errG := bp.store.LoadGroup()
+	_, errS := bp.store.LoadShare(grp.Scheme)
 
 	isFresh := errG != nil || errS != nil
 

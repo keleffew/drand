@@ -73,7 +73,7 @@ func (bp *BeaconProcess) InitDKG(c context.Context, in *drand.InitDKGPacket) (*d
 				in.GetBeaconPeriod(),
 				in.GetCatchupPeriod(),
 				bp.getBeaconID(),
-				in.GetSchemeID(),
+				bp.priv.Public.Scheme,
 				in.GetInfo(),
 			},
 		)
@@ -212,22 +212,6 @@ func (bp *BeaconProcess) InitReshare(c context.Context, in *drand.InitResharePac
 	response := finalGroup.ToProto(bp.version)
 
 	return response, nil
-}
-
-// Share is a functionality of Control Service defined in protobuf/control that requests the private share of the drand node running locally
-func (bp *BeaconProcess) Share(context.Context, *drand.ShareRequest) (*drand.ShareResponse, error) {
-	share, err := bp.store.LoadShare()
-	if err != nil {
-		return nil, err
-	}
-
-	id := uint32(share.Share.I)
-	buff, err := share.Share.V.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	return &drand.ShareResponse{Index: id, Share: buff, Metadata: bp.newMetadata()}, nil
 }
 
 // PublicKey is a functionality of Control Service defined in protobuf/control

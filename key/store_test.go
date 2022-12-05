@@ -71,7 +71,7 @@ func TestKeysSaveLoad(t *testing.T) {
 		Scheme: group.Scheme,
 	}
 	require.Nil(t, store.SaveShare(testShare))
-	loadedShare, err := store.LoadShare()
+	loadedShare, err := store.LoadShare(group.Scheme)
 
 	require.NoError(t, err)
 	require.Equal(t, testShare.Share.V, loadedShare.Share.V)

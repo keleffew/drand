@@ -64,7 +64,7 @@ type NodeTOML struct {
 
 // NodeFromProto creates a node from its wire representation
 func NodeFromProto(n *proto.Node) (*Node, error) {
-	id, err := IdentityFromProto(n.Public)
+	id, err := IdentityFromProto(n.Public, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -897,7 +897,7 @@ func checkIdentityAddress(conf *core.Config, addr string, tls bool, beaconID str
 	}
 
 	identity := &drand.Identity{Signature: identityResp.Signature, Tls: identityResp.Tls, Address: identityResp.Address, Key: identityResp.Key}
-	id, err := key.IdentityFromProto(identity)
+	id, err := key.IdentityFromProto(identity, nil)
 	if err != nil {
 		return err
 	}

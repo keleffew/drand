@@ -6,6 +6,8 @@ import (
 	"path"
 	"reflect"
 
+	"github.com/drand/drand/crypto"
+
 	"github.com/BurntSushi/toml"
 
 	"github.com/drand/drand/common"
@@ -23,7 +25,7 @@ type Store interface {
 	// operator
 	LoadKeyPair() (*Pair, error)
 	SaveShare(share *Share) error
-	LoadShare() (*Share, error)
+	LoadShare(scheme *crypto.Scheme) (*Share, error)
 	SaveGroup(*Group) error
 	LoadGroup() (*Group, error)
 	Reset(...ResetOption) error
@@ -143,8 +145,11 @@ func (f *fileStore) SaveShare(share *Share) error {
 	return Save(f.shareFile, share, true)
 }
 
-func (f *fileStore) LoadShare() (*Share, error) {
+func (f *fileStore) LoadShare(sch *crypto.Scheme) (*Share, error) {
 	s := new(Share)
+	if sch != nil {
+		s.Scheme = sch
+	}
 	return s, Load(f.shareFile, s)
 }
 
