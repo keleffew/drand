@@ -198,7 +198,7 @@ func (l *LocalNode) RunDKG(nodes, thr int, timeout string, leader bool, leaderAd
 		l.log.Errorw("", "drand", "dkg run failed", "err", err)
 		return nil
 	}
-	kg, _ := key.GroupFromProto(grp)
+	kg, _ := key.GroupFromProto(grp, nil)
 	return kg
 }
 
@@ -210,7 +210,7 @@ func (l *LocalNode) GetGroup() *key.Group {
 		l.log.Errorw("", "drand", "can't  get group", "err", err)
 		return nil
 	}
-	group, err := key.GroupFromProto(grp)
+	group, err := key.GroupFromProto(grp, nil)
 	if err != nil {
 		l.log.Errorw("", "drand", "can't deserialize group", "err", err)
 		return nil
@@ -234,7 +234,7 @@ func (l *LocalNode) RunReshare(nodes, thr int, oldGroup string, timeout string, 
 		l.log.Errorw("", "drand", "reshare failed", "err", err)
 		return nil
 	}
-	kg, _ := key.GroupFromProto(grp)
+	kg, _ := key.GroupFromProto(grp, nil)
 	return kg
 }
 

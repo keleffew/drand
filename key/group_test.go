@@ -87,7 +87,7 @@ func TestGroupProtobuf(t *testing.T) {
 			tv.change(protoGroup)
 		}
 
-		loaded, err := GroupFromProto(protoGroup)
+		loaded, err := GroupFromProto(protoGroup, nil)
 		if tv.isErr {
 			require.Error(t, err)
 			continue
@@ -183,7 +183,7 @@ func TestConvertGroup(t *testing.T) {
 	version := common.GetAppVersion()
 
 	proto := group.ToProto(version)
-	received, err := GroupFromProto(proto)
+	received, err := GroupFromProto(proto, nil)
 	require.NoError(t, err)
 	require.True(t, received.Equal(group))
 }

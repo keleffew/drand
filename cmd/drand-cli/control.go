@@ -137,7 +137,7 @@ func shareCmd(c *cli.Context) error {
 	if shareErr != nil {
 		return fmt.Errorf("error setting up the network: %w", shareErr)
 	}
-	group, err := key.GroupFromProto(groupP)
+	group, err := key.GroupFromProto(groupP, nil)
 	if err != nil {
 		return fmt.Errorf("error interpreting the group from protobuf: %w", err)
 	}
@@ -223,7 +223,7 @@ func leadShareCmd(c *cli.Context) error {
 	if shareErr != nil {
 		return fmt.Errorf("error setting up the network: %w", shareErr)
 	}
-	group, err := key.GroupFromProto(groupP)
+	group, err := key.GroupFromProto(groupP, nil)
 	if err != nil {
 		return fmt.Errorf("error interpreting the group from protobuf: %w", err)
 	}
@@ -299,7 +299,7 @@ func reshareCmd(c *cli.Context) error {
 	if shareErr != nil {
 		return fmt.Errorf("error setting up the network: %w", shareErr)
 	}
-	group, err := key.GroupFromProto(groupP)
+	group, err := key.GroupFromProto(groupP, nil)
 	if err != nil {
 		return fmt.Errorf("error interpreting the group from protobuf: %w", err)
 	}
@@ -367,7 +367,7 @@ func leadReshareCmd(c *cli.Context) error {
 	if shareErr != nil {
 		return fmt.Errorf("error setting up the network: %w", shareErr)
 	}
-	group, err := key.GroupFromProto(groupP)
+	group, err := key.GroupFromProto(groupP, nil)
 	if err != nil {
 		return fmt.Errorf("error interpreting the group from protobuf: %w", err)
 	}
@@ -571,7 +571,7 @@ func showGroupCmd(c *cli.Context) error {
 		return fmt.Errorf("fetching group file error: %w", err)
 	}
 
-	group, err := key.GroupFromProto(r)
+	group, err := key.GroupFromProto(r, nil)
 	if err != nil {
 		return err
 	}

@@ -366,10 +366,10 @@ func MinimumT(n int) int {
 }
 
 // GroupFromProto converts a protobuf group into a local Group object
-func GroupFromProto(g *proto.GroupPacket) (*Group, error) {
+func GroupFromProto(g *proto.GroupPacket, targetScheme *crypto.Scheme) (*Group, error) {
 	var nodes = make([]*Node, 0, len(g.GetNodes()))
 	for _, pbNode := range g.GetNodes() {
-		kid, err := NodeFromProto(pbNode)
+		kid, err := NodeFromProto(pbNode, targetScheme)
 		if err != nil {
 			return nil, err
 		}

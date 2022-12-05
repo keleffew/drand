@@ -373,7 +373,7 @@ func (r *setupReceiver) PushDKGInfo(pg *drand.DKGInfoPacket) error {
 		return errors.New("invalid secret")
 	}
 	// verify things are all in order
-	group, err := key.GroupFromProto(pg.NewGroup)
+	group, err := key.GroupFromProto(pg.NewGroup, r.scheme)
 	if err != nil {
 		return fmt.Errorf("group from leader invalid: %w", err)
 	}

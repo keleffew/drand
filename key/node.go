@@ -3,6 +3,8 @@ package key
 import (
 	"encoding/binary"
 
+	"github.com/drand/drand/crypto"
+
 	proto "github.com/drand/drand/protobuf/drand"
 	"github.com/drand/kyber/share/dkg"
 )
@@ -63,8 +65,8 @@ type NodeTOML struct {
 }
 
 // NodeFromProto creates a node from its wire representation
-func NodeFromProto(n *proto.Node) (*Node, error) {
-	id, err := IdentityFromProto(n.Public, nil)
+func NodeFromProto(n *proto.Node, targetScheme *crypto.Scheme) (*Node, error) {
+	id, err := IdentityFromProto(n.Public, targetScheme)
 	if err != nil {
 		return nil, err
 	}

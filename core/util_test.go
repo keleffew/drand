@@ -303,7 +303,7 @@ func (d *DrandTestScenario) RunDKG() *key.Group {
 		}
 
 		d.t.Log("[RunDKG] Leader obtain group")
-		group, err := key.GroupFromProto(groupPacket)
+		group, err := key.GroupFromProto(groupPacket, nil)
 		if err != nil {
 			errDetector <- err
 			return
@@ -346,7 +346,7 @@ func (d *DrandTestScenario) RunDKG() *key.Group {
 				errDetector <- err
 				return
 			}
-			group, err := key.GroupFromProto(groupPacket)
+			group, err := key.GroupFromProto(groupPacket, nil)
 			if err != nil {
 				errDetector <- err
 				return
@@ -377,7 +377,7 @@ func (d *DrandTestScenario) RunDKG() *key.Group {
 	groupProto, err := controlClient.GroupFile(d.beaconID)
 	require.NoError(d.t, err)
 	d.t.Logf("[-------] Leader %s FINISHED", leaderNode.addr)
-	group, err := key.GroupFromProto(groupProto)
+	group, err := key.GroupFromProto(groupProto, nil)
 	require.NoError(d.t, err)
 
 	// we check all nodes are included in the group
@@ -646,7 +646,7 @@ func (d *DrandTestScenario) runLeaderReshare(
 	}
 
 	d.t.Logf("[reshare:leader] reshare finished - got group")
-	fg, err := key.GroupFromProto(finalGroup)
+	fg, err := key.GroupFromProto(finalGroup, nil)
 	if err != nil {
 		errCh <- err
 		return
