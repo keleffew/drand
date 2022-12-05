@@ -313,7 +313,7 @@ func NewMockBeacon(sch scheme.Scheme) (*drand.ChainInfoPacket, *drand.PublicRand
 	return c, r
 }
 
-func (s *Server) Propose(_ context.Context, _ *drand.Proposal) (*drand.GenericResponseMessage, error) {
+func (s *Server) Propose(_ context.Context, _ *drand.ProposalTerms) (*drand.GenericResponseMessage, error) {
 	return nil, errors.New("unimplemented for mock server")
 }
 
@@ -325,14 +325,14 @@ func (s *Server) Reject(_ context.Context, _ *drand.RejectProposal) (*drand.Gene
 	return nil, errors.New("unimplemented for mock server")
 }
 
-func (s *Server) SendError(_ context.Context, _ *drand.DKGError) (*drand.GenericResponseMessage, error) {
-	return nil, errors.New("unimplemented for mock server")
-}
-
 func (s *Server) Abort(_ context.Context, _ *drand.AbortDKG) (*drand.GenericResponseMessage, error) {
 	return nil, errors.New("unimplemented for mock server")
 }
 
 func (s *Server) Execute(_ context.Context, _ *drand.StartExecution) (*drand.GenericResponseMessage, error) {
+	return nil, errors.New("unimplemented for mock server")
+}
+
+func (s *Server) StartJoin(ctx context.Context, options *drand.JoinOptions) (*drand.GenericResponseMessage, error) {
 	return nil, errors.New("unimplemented for mock server")
 }

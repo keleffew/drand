@@ -6,74 +6,9 @@ import (
 
 	"github.com/drand/drand/common/scheme"
 	"github.com/drand/drand/key"
-	"github.com/drand/drand/metrics"
 	"github.com/drand/drand/protobuf/common"
 	"github.com/drand/drand/protobuf/drand"
 )
-
-// InitDKG take a InitDKGPacket, extracts the informations needed and wait for
-// the DKG protocol to finish. If the request specifies this node is a leader,
-// it starts the DKG protocol.
-func (dd *DrandDaemon) InitDKG(c context.Context, in *drand.InitDKGPacket) (*drand.GroupPacket, error) {
-	beaconID, err := dd.readBeaconID(in.GetMetadata())
-	if err != nil {
-		return nil, err
-	}
-
-	bp, err := dd.getBeaconProcessByID(beaconID)
-	if err != nil {
-		store, isStoreLoaded := dd.initialStores[beaconID]
-		if !isStoreLoaded {
-			dd.log.Infow("", "init_dkg", "loading store from disk")
-
-			newStore := key.NewFileStore(dd.opts.ConfigFolderMB(), beaconID)
-			store = &newStore
-		}
-
-		dd.log.Infow("", "init_dkg", "instantiating a new beacon process")
-		bp, err = dd.InstantiateBeaconProcess(beaconID, *store)
-		if err != nil {
-			return nil, fmt.Errorf("something went wrong try to initiate DKG. err: %w", err)
-		}
-	}
-
-	return bp.InitDKG(c, in)
-}
-
-// InitReshare receives information about the old and new group from which to
-// operate the resharing protocol.
-func (dd *DrandDaemon) InitReshare(ctx context.Context, in *drand.InitResharePacket) (*drand.GroupPacket, error) {
-	beaconID, err := dd.readBeaconID(in.GetMetadata())
-	if err != nil {
-		return nil, err
-	}
-
-	bp, err := dd.getBeaconProcessByID(beaconID)
-	if bp == nil {
-		return nil, fmt.Errorf("beacon with ID %s could not be found - make sure you have passed the id flag or have a default beacon", beaconID)
-	}
-
-	if err != nil {
-		store, isStoreLoaded := dd.initialStores[beaconID]
-		if !isStoreLoaded {
-			dd.log.Infow("", "init_reshare", "loading store from disk")
-
-			newStore := key.NewFileStore(dd.opts.ConfigFolderMB(), beaconID)
-			store = &newStore
-		}
-
-		metrics.GroupSize.WithLabelValues(bp.getBeaconID()).Set(float64(in.Info.Nodes))
-		metrics.GroupThreshold.WithLabelValues(bp.getBeaconID()).Set(float64(in.Info.Threshold))
-
-		dd.log.Infow("", "init_reshare", "instantiating a new beacon process")
-		bp, err = dd.InstantiateBeaconProcess(beaconID, *store)
-		if err != nil {
-			return nil, fmt.Errorf("something went wrong try to initiate DKG")
-		}
-	}
-
-	return bp.InitReshare(ctx, in)
-}
 
 // PingPong simply responds with an empty packet, proving that this drand node
 // is up and alive.

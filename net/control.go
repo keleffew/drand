@@ -4,11 +4,9 @@ import (
 	ctx "context"
 	"encoding/hex"
 	"fmt"
-	"net"
-	"time"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"net"
 
 	"github.com/drand/drand/common"
 	"github.com/drand/drand/log"
@@ -155,113 +153,6 @@ func (c *ControlClient) ListSchemes() (*control.ListSchemesResponse, error) {
 
 	resp, err := c.client.ListSchemes(ctx.Background(), &control.ListSchemesRequest{Metadata: metadata})
 	return resp, err
-}
-
-// InitReshareLeader sets up the node to be ready for a resharing protocol.
-// NOTE: only group referral via filesystem path is supported at the moment.
-// XXX Might be best to move to core/
-func (c *ControlClient) InitReshareLeader(
-	nodes, threshold int,
-	timeout, catchupPeriod time.Duration,
-	secret, oldPath string,
-	offset int,
-	beaconID string) (*control.GroupPacket, error) {
-	metadata := protoCommon.Metadata{NodeVersion: c.version.ToProto(), BeaconID: beaconID}
-
-	request := &control.InitResharePacket{
-		Old: &control.GroupInfo{
-			Location: &control.GroupInfo_Path{Path: oldPath},
-		},
-		Info: &control.SetupInfoPacket{
-			Nodes:        uint32(nodes),
-			Threshold:    uint32(threshold),
-			Leader:       true,
-			Timeout:      uint32(timeout.Seconds()),
-			Secret:       []byte(secret),
-			BeaconOffset: uint32(offset),
-			Metadata:     &metadata,
-		},
-		CatchupPeriodChanged: catchupPeriod >= 0,
-		CatchupPeriod:        uint32(catchupPeriod.Seconds()),
-		Metadata:             &metadata,
-	}
-
-	return c.client.InitReshare(ctx.Background(), request)
-}
-
-// InitReshare sets up the node to be ready for a resharing protocol.
-func (c *ControlClient) InitReshare(leader Peer, secret, oldPath string, force bool, beaconID string) (*control.GroupPacket, error) {
-	metadata := protoCommon.Metadata{NodeVersion: c.version.ToProto(), BeaconID: beaconID}
-
-	request := &control.InitResharePacket{
-		Old: &control.GroupInfo{
-			Location: &control.GroupInfo_Path{Path: oldPath},
-		},
-		Info: &control.SetupInfoPacket{
-			Leader:        false,
-			LeaderAddress: leader.Address(),
-			LeaderTls:     leader.IsTLS(),
-			Secret:        []byte(secret),
-			Force:         force,
-			Metadata:      &metadata,
-		},
-		Metadata: &metadata,
-	}
-
-	return c.client.InitReshare(ctx.Background(), request)
-}
-
-// InitDKGLeader sets up the node to be ready for a first DKG protocol.
-// groupPart
-// NOTE: only group referral via filesystem path is supported at the moment.
-// XXX Might be best to move to core/
-func (c *ControlClient) InitDKGLeader(
-	nodes, threshold int,
-	beaconPeriod, catchupPeriod, timeout time.Duration,
-	entropy *control.EntropyInfo,
-	secret string,
-	offset int,
-	schemeID string,
-	beaconID string) (*control.GroupPacket, error) {
-	metadata := protoCommon.Metadata{NodeVersion: c.version.ToProto(), BeaconID: beaconID}
-
-	request := &control.InitDKGPacket{
-		Info: &control.SetupInfoPacket{
-			Nodes:        uint32(nodes),
-			Threshold:    uint32(threshold),
-			Leader:       true,
-			Timeout:      uint32(timeout.Seconds()),
-			Secret:       []byte(secret),
-			BeaconOffset: uint32(offset),
-			Metadata:     &metadata,
-		},
-		Entropy:       entropy,
-		BeaconPeriod:  uint32(beaconPeriod.Seconds()),
-		CatchupPeriod: uint32(catchupPeriod.Seconds()),
-		SchemeID:      schemeID,
-		Metadata:      &metadata,
-	}
-
-	return c.client.InitDKG(ctx.Background(), request)
-}
-
-// InitDKG sets up the node to be ready for a first DKG protocol.
-func (c *ControlClient) InitDKG(leader Peer, entropy *control.EntropyInfo, secret, beaconID string) (*control.GroupPacket, error) {
-	metadata := protoCommon.Metadata{NodeVersion: c.version.ToProto(), BeaconID: beaconID}
-
-	request := &control.InitDKGPacket{
-		Info: &control.SetupInfoPacket{
-			Leader:        false,
-			LeaderAddress: leader.Address(),
-			LeaderTls:     leader.IsTLS(),
-			Secret:        []byte(secret),
-			Metadata:      &metadata,
-		},
-		Entropy:  entropy,
-		Metadata: &metadata,
-	}
-
-	return c.client.InitDKG(ctx.Background(), request)
 }
 
 // Share returns the share of the remote node

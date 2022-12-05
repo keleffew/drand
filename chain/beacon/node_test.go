@@ -254,6 +254,7 @@ func (b *BeaconTest) ServeBeacon(t *testing.T, i int) {
 		b.nodes[j].private.Public.Address(),
 		"", "",
 		beaconServer,
+		beaconServer,
 		true)
 	if err != nil {
 		panic(err)

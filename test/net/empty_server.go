@@ -47,7 +47,7 @@ func (s *EmptyServer) PushDKGInfo(context.Context, *drand.DKGInfoPacket) (*drand
 }
 
 // BroadcastDKG is an empty implementation
-func (s *EmptyServer) BroadcastDKG(context.Context, *drand.DKGPacket) (*drand.Empty, error) {
+func (s *EmptyServer) BroadcastDKG(context.Context, *drand.DKGPacket) (*drand.GenericResponseMessage, error) {
 	return nil, nil
 }
 
@@ -88,16 +88,6 @@ func (s *EmptyServer) ListSchemes(context.Context, *drand.ListSchemesRequest) (*
 
 // ListBeaconIDs is an empty implementation
 func (s *EmptyServer) ListBeaconIDs(context.Context, *drand.ListBeaconIDsRequest) (*drand.ListBeaconIDsResponse, error) {
-	return nil, nil
-}
-
-// InitDKG is an empty implementation
-func (s *EmptyServer) InitDKG(context.Context, *drand.InitDKGPacket) (*drand.GroupPacket, error) {
-	return nil, nil
-}
-
-// InitReshare is an empty implementation
-func (s *EmptyServer) InitReshare(context.Context, *drand.InitResharePacket) (*drand.GroupPacket, error) {
 	return nil, nil
 }
 
@@ -164,7 +154,7 @@ func (s *EmptyServer) Reject(_ context.Context, rejection *drand.RejectProposal)
 	return nil, nil
 }
 
-func (s *EmptyServer) Propose(_ context.Context, proposal *drand.Proposal) (*drand.GenericResponseMessage, error) {
+func (s *EmptyServer) Propose(_ context.Context, proposal *drand.ProposalTerms) (*drand.GenericResponseMessage, error) {
 	return nil, nil
 }
 
@@ -181,6 +171,10 @@ func (s *EmptyServer) StartNetwork(_ context.Context, options *drand.FirstPropos
 }
 
 func (s *EmptyServer) StartProposal(_ context.Context, options *drand.ProposalOptions) (*drand.GenericResponseMessage, error) {
+	return nil, nil
+}
+
+func (s *EmptyServer) StartJoin(_ context.Context, options *drand.JoinOptions) (*drand.GenericResponseMessage, error) {
 	return nil, nil
 }
 

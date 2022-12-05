@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	dkg2 "github.com/drand/drand/core/dkg"
 	gnet "net"
 	"os"
 	"path"
@@ -726,8 +725,8 @@ func (d *DrandTestScenario) RunReshare(t *testing.T, c *reshareConfig) (*key.Gro
 	leaderGroupReadyCh := make(chan *key.Group, 1)
 	// setup the channel where we can see all node-initiated outgoing packets
 	// for the DKG
-	outgoingChan := make(chan dkg2.packet, 100)
-	incomingChan := make(chan dkg2.packet, 100)
+	outgoingChan := make(chan dkg.Packet, 100)
+	incomingChan := make(chan dkg.Packet, 100)
 
 	// wait until leader is listening
 	controlClient, err := net.NewControlClient(leader.drand.opts.ControlPort())
@@ -859,15 +858,6 @@ func (bp *BeaconProcess) DenyBroadcastTo(t *testing.T, addresses ...string) {
 	}
 }
 
-func (d *DenyClient) BroadcastDKG(c context.Context, p net.Peer, in *drand.DKGPacket, opts ...net.CallOption) error {
-	if !d.isAllowed(p) {
-		d.t.Logf("[DKG] Deny communication %s\n", p.Address())
-		return errors.New("dkg broadcast denied")
-	}
-
-	return d.ProtocolClient.BroadcastDKG(c, p, in)
-}
-
 func (d *DenyClient) isAllowed(p net.Peer) bool {
 	for _, s := range d.deny {
 		if p.Address() == s {
@@ -906,4 +896,8 @@ func newNode(now time.Time, certPath string, daemon *DrandDaemon, dr *BeaconProc
 		drand:    dr,
 		clock:    c,
 	}
+}
+
+func (n *MockNode) GetAddr() string {
+	return n.addr
 }

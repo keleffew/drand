@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 	"github.com/drand/drand/chain/beacon"
 	commonutils "github.com/drand/drand/common"
 	"github.com/drand/drand/common/scheme"
-	"github.com/drand/drand/entropy"
 	"github.com/drand/drand/fs"
 	"github.com/drand/drand/key"
 	"github.com/drand/drand/log"
@@ -25,28 +23,10 @@ import (
 	"github.com/drand/drand/protobuf/common"
 	"github.com/drand/drand/protobuf/drand"
 	"github.com/drand/kyber/share/dkg"
-	vss "github.com/drand/kyber/share/vss/pedersen"
 )
 
 // errPreempted is returned on reshares when a subsequent reshare is started concurrently
 var errPreempted = errors.New("time out: pre-empted")
-
-// Control services
-
-// InitDKG take a InitDKGPacket, extracts the information needed and wait for
-// the DKG protocol to finish. If the request specifies this node is a leader,
-// it starts the DKG protocol.
-func (bp *BeaconProcess) InitDKG(c context.Context, in *drand.InitDKGPacket) (*drand.GroupPacket, error) {
-	return nil, nil
-}
-
-// InitReshare receives information about the old and new group from which to
-// operate the resharing protocol.
-//
-//nolint:funlen
-func (bp *BeaconProcess) InitReshare(c context.Context, in *drand.InitResharePacket) (*drand.GroupPacket, error) {
-	return nil, nil
-}
 
 // Share is a functionality of Control Service defined in protobuf/control that requests the private share of the drand node running locally
 func (bp *BeaconProcess) Share(context.Context, *drand.ShareRequest) (*drand.ShareResponse, error) {
@@ -191,34 +171,6 @@ func (bp *BeaconProcess) cleanupDKG() {
 
 }
 
-// runResharing setups all necessary structures to run the resharing protocol
-// and waits until it finishes (or timeouts). If leader is true, it sends the
-// first packet so other nodes will start as soon as they receive it.
-//
-//nolint:funlen
-func (bp *BeaconProcess) runResharing(leader bool, oldGroup, newGroup *key.Group, timeout uint32) (*key.Group, error) {
-	return nil, nil
-}
-
-// This method sends the public key to the denoted leader address and then waits
-// to receive the group file. After receiving it, it starts the DKG process in
-// "waiting" mode, waiting for the leader to send the first packet.
-//
-//nolint:funlen
-func (bp *BeaconProcess) setupAutomaticDKG(_ context.Context, in *drand.InitDKGPacket) (*drand.GroupPacket, error) {
-	return nil, nil
-}
-
-// similar to setupAutomaticDKG but with additional verification and information
-// w.r.t. to the previous group
-//
-//nolint:funlen
-func (bp *BeaconProcess) setupAutomaticResharing(_ context.Context, oldGroup *key.Group, in *drand.InitResharePacket) (
-	*drand.GroupPacket, error,
-) {
-	return nil, nil
-}
-
 func (bp *BeaconProcess) validateGroupTransition(oldGroup, newGroup *key.Group) error {
 	if oldGroup.GenesisTime != newGroup.GenesisTime {
 		bp.log.Errorw("", "setup_reshare", "invalid genesis time in received group")
@@ -245,22 +197,6 @@ func (bp *BeaconProcess) validateGroupTransition(oldGroup, newGroup *key.Group) 
 		return errors.New("control: new group with transition time in the past")
 	}
 	return nil
-}
-
-func (bp *BeaconProcess) extractGroup(old *drand.GroupInfo) (*key.Group, error) {
-	bp.state.Lock()
-	defer bp.state.Unlock()
-
-	if oldGroup, err := extractGroup(old); err == nil {
-		return oldGroup, nil
-	}
-
-	if bp.group == nil {
-		return nil, errors.New("can't init-reshare if no old group provided - try providing a group file")
-	}
-
-	bp.log.With("module", "control").Debugw("", "init_reshare", "using_stored_group")
-	return bp.group, nil
 }
 
 // PingPong simply responds with an empty packet, proving that this drand node
@@ -406,24 +342,6 @@ func (bp *BeaconProcess) ListSchemes(context.Context, *drand.ListSchemesRequest)
 func (bp *BeaconProcess) ListBeaconIDs(context.Context, *drand.ListSchemesRequest) (*drand.ListSchemesResponse, error) {
 	return nil, fmt.Errorf("method not implemented")
 }
-
-func extractGroup(i *drand.GroupInfo) (*key.Group, error) {
-	g := new(key.Group)
-	switch x := i.Location.(type) {
-	case *drand.GroupInfo_Path:
-		// search group file via local filesystem path
-		if err := key.Load(x.Path, g); err != nil {
-			return nil, err
-		}
-	default:
-		return nil, errors.New("control: can't allow new empty group")
-	}
-	if g.Threshold < vss.MinimumT(g.Len()) {
-		return nil, errors.New("control: threshold of new group too low ")
-	}
-	return g, nil
-}
-
 func (bp *BeaconProcess) getPhaser(timeout uint32) *dkg.TimePhaser {
 	tDuration := time.Duration(timeout) * time.Second
 	if timeout == 0 {
@@ -857,13 +775,4 @@ func sendPlainProgressCallback(
 		}
 	}
 	return
-}
-
-func extractEntropy(i *drand.EntropyInfo) (io.Reader, bool) {
-	if i == nil {
-		return nil, false
-	}
-	r := entropy.NewScriptReader(i.Script)
-	user := i.UserOnly
-	return r, user
 }
