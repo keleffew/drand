@@ -90,8 +90,7 @@ func (p *Pair) SelfSign() error {
 	return nil
 }
 
-// NewKeyPair returns a freshly created private / public key pair. The group is
-// decided by the group variable by default.
+// NewKeyPair returns a freshly created private / public key pair.
 func NewKeyPair(address string) (*Pair, error) {
 	sch, err := scheme.GetSchemeFromEnv()
 	if err != nil {
@@ -321,13 +320,18 @@ func (s *Share) FromTOML(i interface{}) error {
 		return errors.New("invalid struct received for share")
 	}
 	sch := crypto.SchemeFromName(t.SchemeName)
-	if sch == nil && s.Scheme == nil {
-		return fmt.Errorf("invalid scheme name in Share FromTOML: '%s'", t.SchemeName)
-	}
+
 	if sch != nil && s.Scheme != nil && sch.Name != s.Scheme.Name {
 		return fmt.Errorf("mismatch in scheme name in Share FromTOML: '%s'!='%s'", t.SchemeName, s.Scheme.Name)
 	}
-	s.Scheme = sch
+
+	if s.Scheme == nil {
+		if sch == nil {
+			return fmt.Errorf("invalid scheme name in Share FromTOML: '%s'", t.SchemeName)
+		}
+		s.Scheme = sch
+	}
+
 	s.Commits = make([]kyber.Point, len(t.Commits))
 	for i, c := range t.Commits {
 		p, err := StringToPoint(s.Scheme.KeyGroup, c)
