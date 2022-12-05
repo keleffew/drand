@@ -367,9 +367,17 @@ func MinimumT(n int) int {
 
 // GroupFromProto converts a protobuf group into a local Group object
 func GroupFromProto(g *proto.GroupPacket, targetScheme *crypto.Scheme) (*Group, error) {
+	sch := crypto.SchemeFromName(g.GetSchemeID())
+	if sch == nil {
+		return nil, fmt.Errorf("invalid Scheme name in GroupPacket")
+	}
+	if targetScheme != nil && targetScheme.Name != sch.Name {
+		return nil, fmt.Errorf("mismatch in Scheme name in GroupPacket: %s != %s", targetScheme.Name, sch.Name)
+	}
+
 	var nodes = make([]*Node, 0, len(g.GetNodes()))
 	for _, pbNode := range g.GetNodes() {
-		kid, err := NodeFromProto(pbNode, targetScheme)
+		kid, err := NodeFromProto(pbNode, sch)
 		if err != nil {
 			return nil, err
 		}
@@ -391,11 +399,6 @@ func GroupFromProto(g *proto.GroupPacket, targetScheme *crypto.Scheme) (*Group, 
 	period := time.Duration(g.GetPeriod()) * time.Second
 	if period == time.Duration(0) {
 		return nil, fmt.Errorf("period time is zero")
-	}
-
-	sch := crypto.SchemeFromName(g.GetSchemeID())
-	if sch == nil {
-		return nil, fmt.Errorf("invalid Scheme name in GroupPacket")
 	}
 
 	catchupPeriod := time.Duration(g.GetCatchupPeriod()) * time.Second
