@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/drand/drand/common/scheme"
+
 	"github.com/drand/drand/chain"
 	"github.com/drand/drand/chain/beacon"
 	"github.com/drand/drand/chain/boltdb"
@@ -111,6 +113,11 @@ func (bp *BeaconProcess) Load() (bool, error) {
 	bp.group, err = bp.store.LoadGroup()
 	if err != nil {
 		return false, err
+	}
+
+	// this is a migration path to mitigate for the shares being loaded before the group file
+	if bp.priv.Public.Scheme.Name == scheme.DefaultSchemeID && scheme.DefaultSchemeID != bp.group.Scheme.Name {
+		bp.priv.Public.Scheme = bp.group.Scheme
 	}
 
 	beaconID := bp.getBeaconID()

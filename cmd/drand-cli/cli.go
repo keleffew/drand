@@ -731,7 +731,7 @@ func keygenCmd(c *cli.Context) error {
 	addr := args.First()
 	var validID = regexp.MustCompile(`:\d+$`)
 	if !validID.MatchString(addr) {
-		fmt.Println("Invalid port.")
+		fmt.Println("Invalid port:", addr)
 		addr = addr + ":" + askPort(c)
 	}
 
