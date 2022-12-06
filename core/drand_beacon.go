@@ -115,20 +115,22 @@ func (bp *BeaconProcess) Load() (bool, error) {
 		return false, err
 	}
 
-	// this is a migration path to mitigate for the shares being loaded before the group file
-	if bp.priv.Public.Scheme.Name == scheme.DefaultSchemeID && scheme.DefaultSchemeID != bp.group.Scheme.Name {
-		bp.priv.Public.Scheme = bp.group.Scheme
-		// we need to reload the keypair with the correct scheme
-		if bp.priv, err = bp.store.LoadKeyPair(); err != nil {
-			return false, err
-		}
-	}
-
 	beaconID := bp.getBeaconID()
 	if bp.group == nil {
 		bp.dkgDone = false
 		metrics.DKGStateChange(metrics.DKGNotStarted, beaconID, false)
 		return false, nil
+	}
+
+	// this is a migration path to mitigate for the shares being loaded before the group file
+	if bp.priv.Public.Scheme.Name == scheme.DefaultSchemeID && scheme.DefaultSchemeID != bp.group.Scheme.Name {
+		bp.log.Warnw("Invalid public scheme loaded, reloading key with group's scheme",
+			"priv", bp.priv.Public.Scheme.Name, "group", bp.group.Scheme.Name)
+		bp.priv.Public.Scheme = bp.group.Scheme
+		// we need to reload the keypair with the correct scheme
+		if bp.priv, err = bp.store.LoadKeyPair(); err != nil {
+			return false, err
+		}
 	}
 
 	bp.state.Lock()
