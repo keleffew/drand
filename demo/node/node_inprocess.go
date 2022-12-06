@@ -71,9 +71,9 @@ func NewLocalNode(i int, period string, base string, tls bool, bindAddr string, 
 
 	var priv *key.Pair
 	if l.tls {
-		priv, err = key.NewTLSKeyPair(l.privAddr)
+		priv, err = key.NewTLSKeyPair(l.privAddr, nil)
 	} else {
-		priv, err = key.NewKeyPair(l.privAddr)
+		priv, err = key.NewKeyPair(l.privAddr, nil)
 	}
 	if err != nil {
 		panic(err)

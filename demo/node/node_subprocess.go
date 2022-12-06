@@ -109,7 +109,7 @@ func (n *NodeProc) setup() {
 	}
 
 	// call drand binary
-	n.priv, err = key.NewKeyPair(n.privAddr)
+	n.priv, err = key.NewKeyPair(n.privAddr, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -127,7 +127,7 @@ func (n *NodeProc) setup() {
 	n.store = key.NewFileStore(config.ConfigFolderMB(), n.beaconID)
 
 	// verify it's done
-	n.priv, err = n.store.LoadKeyPair()
+	n.priv, err = n.store.LoadKeyPair(nil)
 	if n.priv.Public.Address() != n.privAddr {
 		panic(fmt.Errorf("[-] Private key stored has address %s vs generated %s || base %s", n.priv.Public.Address(), n.privAddr, n.base))
 	}

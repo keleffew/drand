@@ -49,7 +49,9 @@ func (n *Node) TOML() interface{} {
 func (n *Node) FromTOML(t interface{}) error {
 	ntoml := t.(*NodeTOML)
 	n.Index = ntoml.Index
-	n.Identity = new(Identity)
+	if n.Identity == nil {
+		n.Identity = new(Identity)
+	}
 	return n.Identity.FromTOML(ntoml.PublicTOML)
 }
 

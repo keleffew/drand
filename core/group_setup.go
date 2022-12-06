@@ -253,14 +253,14 @@ func (s *setupManager) createAndSend(keys []*key.Identity) {
 		// round the genesis time to a period modulo
 		ps := int64(s.beaconPeriod.Seconds())
 		genesis += (ps - genesis%ps)
-		group = key.NewGroup(keys, s.thr, genesis, s.beaconPeriod, s.catchupPeriod, s.scheme.Name, s.beaconID)
+		group = key.NewGroup(keys, s.thr, genesis, s.beaconPeriod, s.catchupPeriod, s.scheme, s.beaconID)
 	} else {
 		genesis := s.oldGroup.GenesisTime
 		atLeast := s.clock.Now().Add(totalDKG).Unix()
 		// transitioning to the next round time that is at least
 		// "DefaultResharingOffset" time from now.
 		_, transition := chain.NextRound(atLeast, s.beaconPeriod, s.oldGroup.GenesisTime)
-		group = key.NewGroup(keys, s.thr, genesis, s.beaconPeriod, s.catchupPeriod, s.scheme.Name, s.beaconID)
+		group = key.NewGroup(keys, s.thr, genesis, s.beaconPeriod, s.catchupPeriod, s.scheme, s.beaconID)
 		group.TransitionTime = transition
 		group.GenesisSeed = s.oldGroup.GetGenesisSeed()
 	}

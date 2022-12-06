@@ -91,32 +91,35 @@ func (p *Pair) SelfSign() error {
 }
 
 // NewKeyPair returns a freshly created private / public key pair.
-func NewKeyPair(address string) (*Pair, error) {
-	sch, err := scheme.GetSchemeFromEnv()
-	if err != nil {
-		return nil, err
+func NewKeyPair(address string, targetScheme *crypto.Scheme) (*Pair, error) {
+	if targetScheme == nil {
+		var err error
+		targetScheme, err = scheme.GetSchemeFromEnv()
+		if err != nil {
+			return nil, err
+		}
 	}
-	key := sch.KeyGroup.Scalar().Pick(random.New())
-	pubKey := sch.KeyGroup.Point().Mul(key, nil)
+	key := targetScheme.KeyGroup.Scalar().Pick(random.New())
+	pubKey := targetScheme.KeyGroup.Point().Mul(key, nil)
 
 	pub := &Identity{
 		Key:    pubKey,
 		Addr:   address,
-		Scheme: sch,
+		Scheme: targetScheme,
 	}
 	p := &Pair{
 		Key:    key,
 		Public: pub,
 	}
 
-	err = p.SelfSign()
+	err := p.SelfSign()
 	return p, err
 }
 
 // NewTLSKeyPair returns a fresh keypair associated with the given address
 // reachable over TLS.
-func NewTLSKeyPair(address string) (*Pair, error) {
-	kp, err := NewKeyPair(address)
+func NewTLSKeyPair(address string, targetScheme *crypto.Scheme) (*Pair, error) {
+	kp, err := NewKeyPair(address, targetScheme)
 	if err != nil {
 		return nil, err
 	}

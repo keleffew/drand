@@ -61,7 +61,7 @@ func (bp *BeaconProcess) InitDKG(c context.Context, in *drand.InitDKGPacket) (*d
 	metrics.GroupSize.WithLabelValues(bp.getBeaconID()).Set(float64(in.Info.Nodes))
 	metrics.GroupThreshold.WithLabelValues(bp.getBeaconID()).Set(float64(in.Info.Threshold))
 
-	bp.log.Infow("", "init_dkg", "begin", "time", bp.opts.clock.Now().Unix(), "leader", true)
+	bp.log.Infow("", "init_dkg", "begin", "time", bp.opts.clock.Now().Unix(), "scheme", bp.priv.Public.Scheme.Name, "leader", true)
 
 	// setup the manager
 	newSetup := func(d *BeaconProcess) (*setupManager, error) {
@@ -152,7 +152,7 @@ func (bp *BeaconProcess) InitReshare(c context.Context, in *drand.InitResharePac
 	metrics.GroupSize.WithLabelValues(beaconID).Set(float64(in.Info.Nodes))
 	metrics.GroupThreshold.WithLabelValues(beaconID).Set(float64(in.Info.Threshold))
 
-	bp.log.Infow("", "init_reshare", "begin", "leader", true, "time", bp.opts.clock.Now())
+	bp.log.Infow("", "init_reshare", "begin", "leader", true, "time", bp.opts.clock.Now(), "scheme", bp.priv.Public.Scheme)
 
 	newSetup := func(d *BeaconProcess) (*setupManager, error) {
 		return newReshareSetup(d.log, d.opts.clock, d.priv.Public, oldGroup, in)
@@ -220,7 +220,7 @@ func (bp *BeaconProcess) PublicKey(context.Context, *drand.PublicKeyRequest) (*d
 	bp.state.Lock()
 	defer bp.state.Unlock()
 
-	keyPair, err := bp.store.LoadKeyPair()
+	keyPair, err := bp.store.LoadKeyPair(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -231,25 +231,6 @@ func (bp *BeaconProcess) PublicKey(context.Context, *drand.PublicKeyRequest) (*d
 	}
 
 	return &drand.PublicKeyResponse{PubKey: protoKey, Metadata: bp.newMetadata()}, nil
-}
-
-// PrivateKey is a functionality of Control Service defined in protobuf/control
-// that requests the long term private key of the drand node running locally
-func (bp *BeaconProcess) PrivateKey(context.Context, *drand.PrivateKeyRequest) (*drand.PrivateKeyResponse, error) {
-	bp.state.Lock()
-	defer bp.state.Unlock()
-
-	keyPair, err := bp.store.LoadKeyPair()
-	if err != nil {
-		return nil, err
-	}
-
-	protoKey, err := keyPair.Key.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	return &drand.PrivateKeyResponse{PriKey: protoKey, Metadata: bp.newMetadata()}, nil
 }
 
 // GroupFile replies with the distributed key in the response

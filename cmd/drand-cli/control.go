@@ -694,7 +694,7 @@ func selfSign(c *cli.Context) error {
 	beaconID := getBeaconID(c)
 
 	fs := key.NewFileStore(conf.ConfigFolderMB(), beaconID)
-	pair, err := fs.LoadKeyPair()
+	pair, err := fs.LoadKeyPair(nil)
 
 	if err != nil {
 		return fmt.Errorf("beacon id [%s] - loading private/public: %w", beaconID, err)
@@ -711,7 +711,7 @@ func selfSign(c *cli.Context) error {
 		return fmt.Errorf("beacon id [%s] - saving identity: %w", beaconID, err)
 	}
 
-	fmt.Fprintf(output, "beacon id [%s] - Public identity self signed", beaconID)
+	fmt.Fprintf(output, "beacon id [%s] - Public identity self signed for scheme %s", beaconID, pair.Scheme().Name)
 	fmt.Fprintln(output, printJSON(pair.Public.TOML()))
 	return nil
 }

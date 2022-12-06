@@ -17,7 +17,7 @@ import (
 func newIds(n int) []*Node {
 	ids := make([]*Node, n)
 	for i := 0; i < n; i++ {
-		key, err := NewKeyPair("127.0.0.1:3000")
+		key, err := NewKeyPair("127.0.0.1:3000", nil)
 		if err != nil {
 			panic(err)
 		}

@@ -65,6 +65,10 @@ type Group struct {
 func (g *Group) Find(pub *Identity) *Node {
 	for _, pu := range g.Nodes {
 		if pu.Identity.Equal(pub) {
+			// migration path
+			if pu.Scheme != g.Scheme {
+				pu.Scheme = g.Scheme
+			}
 			return pu
 		}
 	}
@@ -212,13 +216,6 @@ func (g *Group) FromTOML(i interface{}) error {
 		return fmt.Errorf("grouptoml unknown")
 	}
 	g.Threshold = gt.Threshold
-	g.Nodes = make([]*Node, len(gt.Nodes))
-	for i, ptoml := range gt.Nodes {
-		g.Nodes[i] = new(Node)
-		if err := g.Nodes[i].FromTOML(ptoml); err != nil {
-			return fmt.Errorf("group: unwrapping node[%d]: %w", i, err)
-		}
-	}
 
 	// this is a special "migration path", we use the default scheme if none is provided
 	sch, err := scheme.GetSchemeByIDWithDefault(gt.SchemeID)
@@ -226,6 +223,15 @@ func (g *Group) FromTOML(i interface{}) error {
 		return fmt.Errorf("unable to instantiate crypto Scheme name '%s': %w", gt.SchemeID, err)
 	}
 	g.Scheme = sch
+
+	g.Nodes = make([]*Node, len(gt.Nodes))
+	for i, ptoml := range gt.Nodes {
+		g.Nodes[i] = new(Node)
+		g.Nodes[i].Identity = &Identity{Scheme: sch}
+		if err := g.Nodes[i].FromTOML(ptoml); err != nil {
+			return fmt.Errorf("group: unwrapping node[%d]: %w", i, err)
+		}
+	}
 
 	if g.Threshold < dkg.MinimumT(len(gt.Nodes)) {
 		return errors.New("group file have threshold 0")
@@ -313,8 +319,7 @@ func (g *Group) TOMLValue() interface{} {
 // in a setup or resharing phase. Every identity is map to a Node struct whose
 // index is the position in the list of identity.
 func NewGroup(list []*Identity, threshold int, genesis int64, period, catchupPeriod time.Duration,
-	schemeName string, beaconID string) *Group {
-	sch, _ := scheme.GetSchemeByIDWithDefault(schemeName)
+	sch *crypto.Scheme, beaconID string) *Group {
 	return &Group{
 		Nodes:         copyAndSort(list),
 		Threshold:     threshold,

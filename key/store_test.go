@@ -28,7 +28,7 @@ func TestKeysSaveLoad(t *testing.T) {
 	// test loading saving private public key
 	ps[0].Public.TLS = true
 	require.NoError(t, store.SaveKeyPair(ps[0]))
-	loadedKey, err := store.LoadKeyPair()
+	loadedKey, err := store.LoadKeyPair(nil)
 	require.NoError(t, err)
 
 	require.Equal(t, loadedKey.Key.String(), ps[0].Key.String())

@@ -23,7 +23,7 @@ type Store interface {
 	SaveKeyPair(p *Pair) error
 	// LoadKeyPair loads the private/public key pair associated with the drand
 	// operator
-	LoadKeyPair() (*Pair, error)
+	LoadKeyPair(targetScheme *crypto.Scheme) (*Pair, error)
 	SaveShare(share *Share) error
 	LoadShare(scheme *crypto.Scheme) (*Share, error)
 	SaveGroup(*Group) error
@@ -123,8 +123,12 @@ func (f *fileStore) SaveKeyPair(p *Pair) error {
 }
 
 // LoadKeyPair decode private key first then public
-func (f *fileStore) LoadKeyPair() (*Pair, error) {
+func (f *fileStore) LoadKeyPair(targetScheme *crypto.Scheme) (*Pair, error) {
 	p := new(Pair)
+	if targetScheme != nil {
+		p.Public = new(Identity)
+		p.Public.Scheme = targetScheme
+	}
 	if err := Load(f.privateKeyFile, p); err != nil {
 		return nil, err
 	}

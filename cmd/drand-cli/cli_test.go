@@ -169,7 +169,7 @@ func TestKeySelfSign(t *testing.T) {
 	config := core.NewConfig(core.WithConfigFolder(tmp))
 	fileStore := key.NewFileStore(config.ConfigFolderMB(), beaconID)
 
-	pair, err := fileStore.LoadKeyPair()
+	pair, err := fileStore.LoadKeyPair(nil)
 	require.NoError(t, err)
 	pair.Public.Signature = nil
 	require.NoError(t, fileStore.SaveKeyPair(pair))
@@ -198,7 +198,7 @@ func TestKeyGen(t *testing.T) {
 
 	config := core.NewConfig(core.WithConfigFolder(tmp))
 	fileStore := key.NewFileStore(config.ConfigFolderMB(), beaconID)
-	priv, err := fileStore.LoadKeyPair()
+	priv, err := fileStore.LoadKeyPair(nil)
 	require.NoError(t, err)
 	require.NotNil(t, priv.Public)
 
@@ -209,7 +209,7 @@ func TestKeyGen(t *testing.T) {
 
 	config = core.NewConfig(core.WithConfigFolder(tmp2))
 	fileStore = key.NewFileStore(config.ConfigFolderMB(), beaconID)
-	priv, err = fileStore.LoadKeyPair()
+	priv, err = fileStore.LoadKeyPair(nil)
 	require.Error(t, err)
 	require.Nil(t, priv)
 }
@@ -335,7 +335,7 @@ func TestStartWithoutGroup(t *testing.T) {
 
 	ctrlPort1, ctrlPort2, metricsPort := test.FreePort(), test.FreePort(), test.FreePort()
 
-	priv, err := key.NewKeyPair(addr)
+	priv, err := key.NewKeyPair(addr, nil)
 	require.NoError(t, err)
 	require.NoError(t, key.Save(pubPath, priv.Public, false))
 
@@ -574,7 +574,7 @@ func TestClientTLS(t *testing.T) {
 	ctrlPort := test.FreePort()
 	metricsPort := test.FreePort()
 
-	priv, err := key.NewTLSKeyPair(addr)
+	priv, err := key.NewTLSKeyPair(addr, nil)
 	require.NoError(t, err)
 	require.NoError(t, key.Save(pubPath, priv.Public, false))
 
@@ -1027,7 +1027,7 @@ func launchDrandInstances(t *testing.T, n int) []*drandInstance {
 
 		// generate key so it loads
 		// XXX let's remove this requirement - no need for longterm keys
-		priv, err := key.NewTLSKeyPair(addr)
+		priv, err := key.NewTLSKeyPair(addr, nil)
 		require.NoError(t, err)
 		require.NoError(t, key.Save(pubPath, priv.Public, false))
 		config := core.NewConfig(core.WithConfigFolder(nodePath))

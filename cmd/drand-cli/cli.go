@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/drand/drand/crypto"
 	"io"
 	gonet "net"
 	"os"
@@ -735,24 +736,26 @@ func keygenCmd(c *cli.Context) error {
 		addr = addr + ":" + askPort(c)
 	}
 
+	sch := crypto.SchemeFromName(c.String(schemeFlag.Name))
+
 	var priv *key.Pair
 	if c.Bool(insecureFlag.Name) {
 		fmt.Println("Generating private / public key pair without TLS.")
 		var err error
-		priv, err = key.NewKeyPair(addr)
+		priv, err = key.NewKeyPair(addr, sch)
 		if err != nil {
 			return err
 		}
 	} else {
 		fmt.Println("Generating private / public key pair with TLS indication")
-		priv, _ = key.NewTLSKeyPair(addr)
+		priv, _ = key.NewTLSKeyPair(addr, sch)
 	}
 
 	config := contextToConfig(c)
 	beaconID := getBeaconID(c)
 	fileStore := key.NewFileStore(config.ConfigFolderMB(), beaconID)
 
-	if _, err := fileStore.LoadKeyPair(); err == nil {
+	if _, err := fileStore.LoadKeyPair(sch); err == nil {
 		keyDirectory := path.Join(config.ConfigFolderMB(), beaconID)
 		fmt.Fprintf(output, "Keypair already present in `%s`.\nRemove them before generating new one\n", keyDirectory)
 		return nil
