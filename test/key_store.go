@@ -21,7 +21,7 @@ func (k *KeyStore) SaveKeyPair(p *key.Pair) error {
 	return nil
 }
 
-func (k *KeyStore) LoadKeyPair() (*key.Pair, error) {
+func (k *KeyStore) LoadKeyPair(_ *crypto.Scheme) (*key.Pair, error) {
 	return k.priv, nil
 }
 

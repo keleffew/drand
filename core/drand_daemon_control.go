@@ -121,7 +121,6 @@ func (dd *DrandDaemon) PublicKey(ctx context.Context, in *drand.PublicKeyRequest
 // Deprecated: no need to export secret key to a remote client.
 func (dd *DrandDaemon) PrivateKey(ctx context.Context, in *drand.PrivateKeyRequest) (*drand.PrivateKeyResponse, error) {
 	return nil, fmt.Errorf("deprecated function: exporting the PrivateKey to a remote client is not supported")
-
 }
 
 // GroupFile replies with the distributed key in the response
