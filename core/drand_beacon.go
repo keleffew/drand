@@ -118,6 +118,10 @@ func (bp *BeaconProcess) Load() (bool, error) {
 	// this is a migration path to mitigate for the shares being loaded before the group file
 	if bp.priv.Public.Scheme.Name == scheme.DefaultSchemeID && scheme.DefaultSchemeID != bp.group.Scheme.Name {
 		bp.priv.Public.Scheme = bp.group.Scheme
+		// we need to reload the keypair with the correct scheme
+		if bp.priv, err = bp.store.LoadKeyPair(); err != nil {
+			return false, err
+		}
 	}
 
 	beaconID := bp.getBeaconID()

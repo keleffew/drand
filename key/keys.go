@@ -158,14 +158,16 @@ func (p *Pair) FromTOML(i interface{}) error {
 		return errors.New("private can't decode toml from non PairTOML struct")
 	}
 	// this is a special "migration path", we use the default scheme if none is provided
-	sch, err := scheme.GetSchemeByIDWithDefault(ptoml.SchemeName)
-	if err != nil {
-		return err
+	if p.Public == nil || p.Scheme() == nil {
+		p.Public = new(Identity)
+		sch, err := scheme.GetSchemeByIDWithDefault(ptoml.SchemeName)
+		if err != nil {
+			return err
+		}
+		p.Public.Scheme = sch
 	}
-
-	p.Key, err = StringToScalar(sch.KeyGroup, ptoml.Key)
-	p.Public = new(Identity)
-	p.Public.Scheme = sch
+	var err error
+	p.Key, err = StringToScalar(p.Scheme().KeyGroup, ptoml.Key)
 
 	return err
 }
@@ -181,12 +183,16 @@ func (i *Identity) FromTOML(t interface{}) error {
 	if !ok {
 		return errors.New("public can't decode from non PublicTOML struct")
 	}
-	sch, err := scheme.GetSchemeByIDWithDefault(ptoml.SchemeName)
-	if err != nil {
-		return err
+	// special migration path
+	if i.Scheme == nil {
+		sch, err := scheme.GetSchemeByIDWithDefault(ptoml.SchemeName)
+		if err != nil {
+			return err
+		}
+		i.Scheme = sch
 	}
-	i.Scheme = sch
-	i.Key, err = StringToPoint(sch.KeyGroup, ptoml.Key)
+	var err error
+	i.Key, err = StringToPoint(i.Scheme.KeyGroup, ptoml.Key)
 	if err != nil {
 		return fmt.Errorf("decoding public key: %w", err)
 	}
